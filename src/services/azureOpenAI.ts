@@ -1,0 +1,303 @@
+
+// Azure OpenAI Service Integration
+// Note: This service calls a backend API that uses Azure OpenAI credentials
+
+export interface AzureOpenAIRequest {
+  prompt: string;
+  type: 'kanji-explanation' | 'grammar-explanation' | 'translation' | 'conversation';
+  context?: string;
+}
+
+export interface AzureOpenAIResponse {
+  text: string;
+  confidence: number;
+}
+
+class AzureOpenAIService {
+  private getAPIEndpointAndKeyAndModel(): { endpoint: string, apiKey: string, model: string } {
+    const savedSettings = localStorage.getItem('kotobaid-api-settings');
+    if (savedSettings) {
+      try {
+        const settings = JSON.parse(savedSettings);
+        if (settings.azureOpenAI?.backendEndpoint && settings.azureOpenAI?.apiKey && settings.azureOpenAI?.model) {
+          return {
+            endpoint: settings.azureOpenAI.backendEndpoint,
+            apiKey: settings.azureOpenAI.apiKey,
+            model: settings.azureOpenAI.model
+          };
+        }
+      } catch (error) {
+        console.error('Error parsing saved API settings:', error);
+      }
+    }
+    throw new Error('Azure OpenAI endpoint, API key, dan model belum diatur di pengaturan admin.');
+  }
+
+  async generateExplanation(request: AzureOpenAIRequest): Promise<AzureOpenAIResponse> {
+    try {
+      const { endpoint, apiKey, model } = this.getAPIEndpointAndKeyAndModel();
+      let requestBody: any = {};
+      let messages: any[] = [];
+      let maxTokens = 128;
+      let systemPrompt = '';
+      // Deteksi kata kunci untuk permintaan daftar pada semua topik
+      const userPromptLower = request.prompt.toLowerCase();
+      const isListRequest =
+        userPromptLower.includes('contoh') ||
+        userPromptLower.includes('daftar') ||
+        userPromptLower.includes('list') ||
+        userPromptLower.includes('sebutkan');
+      switch (request.type) {
+        case 'translation':
+          systemPrompt = 'You are a helpful AI that translates Japanese to Indonesian. Jawab sangat singkat, hanya hasil terjemahan saja, tanpa penjelasan.';
+          maxTokens = 64;
+          messages = [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: request.prompt }
+          ];
+          break;
+        case 'kanji-explanation':
+        case 'grammar-explanation':
+        case 'conversation':
+          if (isListRequest) {
+            systemPrompt = 'Jawab hanya dengan daftar sesuai permintaan user (misal: daftar kanji, kosakata, grammar, kalimat, dsb), tanpa penjelasan tambahan, tanpa tips belajar, tanpa instruksi tambahan.';
+            maxTokens = 128;
+          } else if (request.type === 'kanji-explanation') {
+            systemPrompt = 'You are a helpful AI that explains Japanese kanji in Indonesian. Jawab langsung, relevan, dan detail sesuai permintaan user. Jangan pernah meminta user memperjelas pertanyaan, jangan balas dengan permintaan klarifikasi, dan jangan meminta user untuk memasukkan pertanyaan lain.';
+            maxTokens = 512;
+          } else if (request.type === 'grammar-explanation') {
+            systemPrompt = 'You are a helpful AI that explains Japanese grammar in Indonesian. Jawab langsung, relevan, dan detail sesuai permintaan user. Jangan pernah meminta user memperjelas pertanyaan, jangan balas dengan permintaan klarifikasi, dan jangan meminta user untuk memasukkan pertanyaan lain.';
+            maxTokens = 512;
+          } else {
+            systemPrompt = `You are an expert assistant for Japanese language learners. Jawab pertanyaan user secara langsung, relevan, dan spesifik sesuai permintaan. Jangan menambah penjelasan yang tidak diminta. Jika user meminta daftar, jawab dengan daftar. Jika user meminta penjelasan, jawab dengan penjelasan. Jangan pernah meminta user memperjelas pertanyaan, jangan balas dengan permintaan klarifikasi, dan jangan meminta user untuk memasukkan pertanyaan lain. Jika pertanyaan tidak relevan dengan bahasa Jepang, balas: 'Maaf, saya hanya dapat membantu pertanyaan seputar bahasa Jepang.'`;
+            maxTokens = 512;
+          }
+          messages = [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: request.prompt }
+          ];
+          break;
+        default:
+          systemPrompt = 'You are a helpful AI assistant.';
+          maxTokens = 512;
+          messages = [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: request.prompt }
+          ];
+      }
+      requestBody = {
+        model,
+        messages,
+        max_tokens: maxTokens,
+        temperature: 0.7
+      };
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': apiKey,
+        },
+        body: JSON.stringify(requestBody)
+      });
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      }
+      const data = await response.json();
+      // Azure OpenAI response format
+      const text = data.choices?.[0]?.message?.content || '';
+      return {
+        text,
+        confidence: 0.95
+      };
+    } catch (error) {
+      console.error('Azure OpenAI Error:', error);
+      return this.getMockResponse(request);
+    }
+  }
+
+  private getMockResponse(request: AzureOpenAIRequest): AzureOpenAIResponse {
+    let mockResponse = '';
+    
+    switch (request.type) {
+      case 'translation':
+        mockResponse = this.getMockTranslation(request.prompt);
+        break;
+      case 'kanji-explanation':
+        mockResponse = this.getMockKanjiExplanation(request.prompt);
+        break;
+      case 'grammar-explanation':
+        mockResponse = this.getMockGrammarExplanation(request.prompt);
+        break;
+      default:
+        mockResponse = 'Penjelasan AI tidak tersedia untuk tipe ini.';
+    }
+
+    return {
+      text: mockResponse,
+      confidence: 0.85
+    };
+  }
+
+  private getMockTranslation(prompt: string): string {
+    // Extract text to translate from prompt
+    const match = prompt.match(/translate.*?["'](.+?)["']/i);
+    const textToTranslate = match ? match[1] : 'teks';
+    
+    return `Terjemahan Indonesia: "${textToTranslate}" berarti [terjemahan dalam bahasa Indonesia]. 
+
+Catatan: Ini adalah respons simulasi. Untuk menggunakan Azure OpenAI yang sesungguhnya, Anda perlu mengimplementasikan backend API yang menggunakan kredensial Azure OpenAI Anda.`;
+  }
+
+  private getMockKanjiExplanation(prompt: string): string {
+    const kanjiMatch = prompt.match(/kanji ["'](.+?)["']/i);
+    const kanji = kanjiMatch ? kanjiMatch[1] : '漢字';
+    
+    return `Penjelasan Kanji "${kanji}":
+
+Kanji ini memiliki makna dan penggunaan yang kaya dalam bahasa Jepang. Secara historis, kanji ini berasal dari sistem tulisan Tiongkok dan telah diadaptasi ke dalam bahasa Jepang.
+
+Penggunaan dalam kehidupan sehari-hari:
+- Sering digunakan dalam konteks formal dan informal
+- Memiliki beberapa cara baca (onyomi dan kunyomi)
+- Dapat dikombinasikan dengan kanji lain untuk membentuk kata majemuk
+
+Catatan: Ini adalah respons simulasi. Untuk penjelasan Azure OpenAI yang sesungguhnya, implementasikan backend API dengan kredensial Azure OpenAI Anda.`;
+  }
+
+  private getMockGrammarExplanation(prompt: string): string {
+    const grammarMatch = prompt.match(/grammar pattern ["'](.+?)["']/i);
+    const grammar = grammarMatch ? grammarMatch[1] : 'tata bahasa';
+    
+    return `Penjelasan Tata Bahasa "${grammar}":
+
+Pola tata bahasa ini adalah salah satu struktur penting dalam bahasa Jepang yang perlu dipahami dengan baik.
+
+Cara penggunaan:
+1. Struktur dasar mengikuti pola tertentu
+2. Digunakan dalam situasi formal dan informal
+3. Memiliki nuansa makna yang spesifik
+
+Contoh penggunaan dalam kalimat:
+- Dalam konteks percakapan sehari-hari
+- Dalam tulisan formal
+- Dalam ekspresi perasaan atau pendapat
+
+Catatan: Ini adalah respons simulasi. Untuk penjelasan Azure OpenAI yang sesungguhnya, implementasikan backend API dengan kredensial Azure OpenAI Anda.`;
+  }
+
+  async translateToIndonesian(text: string): Promise<string> {
+    const request: AzureOpenAIRequest = {
+      prompt: text, // Kirim langsung kalimat aslinya
+      type: 'translation',
+    };
+    const response = await this.generateExplanation(request);
+    // Post-processing: hilangkan awalan "Terjemahan Indonesia:" jika ada
+    let result = response.text.trim();
+    if (result.toLowerCase().startsWith('terjemahan indonesia:')) {
+      result = result.replace(/^terjemahan indonesia:/i, '').trim();
+    }
+    // Hilangkan tanda kutip di awal/akhir jika ada
+    result = result.replace(/^['"]|['"]$/g, '').trim();
+    // Filter jika AI membalas dengan prompt balik atau instruksi
+    const lower = result.toLowerCase();
+    if (
+      lower.includes('silakan tuliskan teks jepang') ||
+      lower.includes('masukkan teks jepang') ||
+      lower.includes('please provide') ||
+      lower.includes('harap masukkan') ||
+      lower.includes('tolong berikan teks dalam bahasa jepang') ||
+      lower.includes('anda meminta terjemahan dari bahasa jepang ke bahasa indonesia') ||
+      lower.includes('mohon berikan teks dalam bahasa jepang') ||
+      lower.includes('mohon masukkan teks dalam bahasa jepang') ||
+      lower.includes('please enter the japanese text') ||
+      lower.includes('please provide the japanese text') ||
+      lower.includes('berikan teks jepang') ||
+      lower.includes('please input japanese text') ||
+      lower.includes('please enter japanese text') ||
+      lower.includes('please provide japanese text') ||
+      lower.includes('harap berikan teks dalam bahasa jepang')
+    ) {
+      result = '';
+    }
+    // Tambahkan kata support Dana
+    if (result) {
+      result += '\n---\nSupport Dana 085813601701';
+    }
+    return result;
+  }
+
+  async explainKanji(kanji: string, context?: string): Promise<string> {
+    const request: AzureOpenAIRequest = {
+      prompt: `Jelaskan kanji berikut dalam bahasa Indonesia: ${kanji}`,
+      type: 'kanji-explanation',
+      context,
+    };
+    const response = await this.generateExplanation(request);
+    let result = response.text.trim();
+    // Terapkan filter yang sama untuk explainKanji dan explainGrammar
+    if (result) {
+      const lower = result.toLowerCase();
+      if (
+        lower.includes('silakan tuliskan teks jepang') ||
+        lower.includes('masukkan teks jepang') ||
+        lower.includes('please provide') ||
+        lower.includes('harap masukkan') ||
+        lower.includes('tolong berikan teks dalam bahasa jepang') ||
+        lower.includes('anda meminta terjemahan dari bahasa jepang ke bahasa indonesia') ||
+        lower.includes('mohon berikan teks dalam bahasa jepang') ||
+        lower.includes('mohon masukkan teks dalam bahasa jepang') ||
+        lower.includes('please enter the japanese text') ||
+        lower.includes('please provide the japanese text') ||
+        lower.includes('berikan teks jepang') ||
+        lower.includes('please input japanese text') ||
+        lower.includes('please enter japanese text') ||
+        lower.includes('please provide japanese text') ||
+        lower.includes('harap berikan teks dalam bahasa jepang')
+      ) {
+        result = '';
+      }
+    }
+    if (result) {
+      result += '\n---\nSupport Dana 085813601701';
+    }
+    return result;
+  }
+
+  async explainGrammar(grammar: string, examples: string[]): Promise<string> {
+    const request: AzureOpenAIRequest = {
+      prompt: `Jelaskan pola tata bahasa Jepang berikut dalam bahasa Indonesia: ${grammar}` + (examples.length > 0 ? `\nContoh: ${examples.join(', ')}` : ''),
+      type: 'grammar-explanation',
+      context: undefined,
+    };
+    const response = await this.generateExplanation(request);
+    let result = response.text.trim();
+    if (result) {
+      const lower = result.toLowerCase();
+      if (
+        lower.includes('silakan tuliskan teks jepang') ||
+        lower.includes('masukkan teks jepang') ||
+        lower.includes('please provide') ||
+        lower.includes('harap masukkan') ||
+        lower.includes('tolong berikan teks dalam bahasa jepang') ||
+        lower.includes('anda meminta terjemahan dari bahasa jepang ke bahasa indonesia') ||
+        lower.includes('mohon berikan teks dalam bahasa jepang') ||
+        lower.includes('mohon masukkan teks dalam bahasa jepang') ||
+        lower.includes('please enter the japanese text') ||
+        lower.includes('please provide the japanese text') ||
+        lower.includes('berikan teks jepang') ||
+        lower.includes('please input japanese text') ||
+        lower.includes('please enter japanese text') ||
+        lower.includes('please provide japanese text') ||
+        lower.includes('harap berikan teks dalam bahasa jepang')
+      ) {
+        result = '';
+      }
+    }
+    if (result) {
+      result += '\n---\nSupport Dana 085813601701';
+    }
+    return result;
+  }
+}
+
+export const azureOpenAI = new AzureOpenAIService();

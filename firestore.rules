@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+
+    // Kanji collection
+    match /kanji/{kanjiId} {
+      allow read: if isAuthenticated();
+      allow write, create, delete: if isAdmin();
+    }
+
+    // Vocabulary collection
+    match /vocabulary/{vocabId} {
+      allow read: if isAuthenticated();
+      allow write, create, delete: if isAdmin();
+    }
+
+    // Grammar collection
+    match /grammar/{grammarId} {
+      allow read: if isAuthenticated();
+      allow write, create, delete: if isAdmin();
+    }
+
+    // Chapters collection
+    match /chapters/{chapterId} {
+      allow read: if isAuthenticated();
+      allow write, create, delete: if isAdmin();
+    }
+
+    // User Progress collection
+    match /userProgress/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write, create: if isOwner(userId);
+      allow delete: if isAdmin();
+    }
+  }
+}
