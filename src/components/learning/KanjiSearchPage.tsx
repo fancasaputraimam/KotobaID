@@ -110,24 +110,13 @@ const KanjiSearchPage: React.FC = () => {
   const [searchHistory, setSearchHistory] = useState<SearchHistory[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [showDetails, setShowDetails] = useState(false);
-  const [searchType, setSearchType] = useState<'kanji' | 'meaning' | 'reading' | 'ai'>('kanji');
   const [aiExplanation, setAiExplanation] = useState('');
   const [explanationLoading, setExplanationLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'search' | 'history' | 'favorites'>('search');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
 
-  const searchTypes = [
-    { value: 'kanji', label: 'Karakter Kanji', icon: FileText },
-    { value: 'meaning', label: 'Arti', icon: Globe },
-    { value: 'reading', label: 'Bacaan', icon: Volume2 },
-    { value: 'ai', label: 'Pencarian AI', icon: Brain }
-  ];
 
-  const popularKanji = [
-    '愛', '美', '心', '光', '水', '火', '木', '金', '土', '日', '月', '星',
-    '花', '山', '海', '空', '雲', '風', '雨', '雪', '春', '夏', '秋', '冬'
-  ];
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,93 +127,195 @@ const KanjiSearchPage: React.FC = () => {
     setResult(null);
     setShowSuggestions(false);
     
-    let kanjiChar = query.trim();
+    const searchQuery = query.trim();
     
     try {
-      // Jika input bukan satu karakter kanji, gunakan AI untuk mencari kanji
-      if (!isSingleKanji(kanjiChar) || searchType === 'ai') {
-        const prompt = `Cari kanji berdasarkan "${kanjiChar}" dalam bahasa Jepang. Berikan respons dalam format JSON berikut:
+      // Universal search prompt that can handle any input type
+      const prompt = `Analisis input "${searchQuery}" dan berikan informasi LENGKAP dan DETAIL tentang kanji yang paling relevan.
+
+Input bisa berupa:
+- Karakter kanji langsung (contoh: 水, 愛, 山)
+- Arti dalam bahasa Indonesia (contoh: air, cinta, gunung)
+- Bacaan hiragana/katakana (contoh: みず, あい, やま)
+- Deskripsi umum (contoh: kanji untuk elemen air)
+
+WAJIB berikan respons dalam format JSON LENGKAP berikut ini tanpa teks tambahan apapun:
 {
-  "kanji": "karakter_kanji",
-  "onyomi": ["bacaan_onyomi"],
-  "kunyomi": ["bacaan_kunyomi"],
-  "meaning": ["arti_dalam_bahasa_indonesia"],
+  "kanji": "karakter_kanji_yang_cocok",
+  "onyomi": ["bacaan_onyomi_1", "bacaan_onyomi_2"],
+  "kunyomi": ["bacaan_kunyomi_1", "bacaan_kunyomi_2"],
+  "meaning": ["arti_utama", "arti_tambahan_1", "arti_tambahan_2"],
   "examples": [
     {
-      "word": "kata_contoh",
-      "reading": "bacaan_kata",
-      "meaning": "arti_kata",
-      "type": "onyomi/kunyomi/compound"
+      "word": "kata_contoh_1",
+      "reading": "bacaan_kata_hiragana",
+      "meaning": "arti_kata_indonesia_detail",
+      "type": "onyomi"
+    },
+    {
+      "word": "kata_contoh_2",
+      "reading": "bacaan_kata_hiragana",
+      "meaning": "arti_kata_indonesia_detail",
+      "type": "kunyomi"
+    },
+    {
+      "word": "kata_contoh_3",
+      "reading": "bacaan_kata_hiragana",
+      "meaning": "arti_kata_indonesia_detail",
+      "type": "compound"
     }
   ],
-  "grade": grade_sekolah,
-  "strokes": jumlah_goresan,
-  "jlptLevel": "N5/N4/N3/N2/N1",
+  "grade": 1,
+  "strokes": 3,
+  "jlptLevel": "N5",
   "compounds": [
     {
-      "word": "kata_majemuk",
-      "reading": "bacaan",
-      "meaning": "arti",
-      "level": "tingkat_kesulitan"
+      "word": "kata_majemuk_1",
+      "reading": "bacaan_hiragana_lengkap",
+      "meaning": "arti_indonesia_detail",
+      "level": "N5"
+    },
+    {
+      "word": "kata_majemuk_2",
+      "reading": "bacaan_hiragana_lengkap",
+      "meaning": "arti_indonesia_detail",
+      "level": "N4"
+    },
+    {
+      "word": "kata_majemuk_3",
+      "reading": "bacaan_hiragana_lengkap",
+      "meaning": "arti_indonesia_detail",
+      "level": "N3"
     }
   ],
-  "etymology": "sejarah_kanji",
-  "usage": "cara_penggunaan",
-  "difficulty": "easy/medium/hard"
+  "etymology": "Sejarah dan asal usul kanji ini sangat detail, termasuk dari mana asalnya, bagaimana bentuk aslinya, dan bagaimana berkembang menjadi bentuk sekarang. Jelaskan juga makna filosofis dan budaya di balik kanji ini.",
+  "usage": "Cara penggunaan kanji ini dalam kalimat dan konteks sehari-hari sangat detail. Berikan contoh kalimat lengkap dan jelaskan kapan dan bagaimana kanji ini digunakan dalam berbagai situasi.",
+  "difficulty": "easy",
+  "frequency": 500,
+  "components": ["komponen_kanji_1", "komponen_kanji_2"],
+  "radicals": ["radikal_utama", "radikal_tambahan"]
 }
 
-Pastikan semua arti dalam bahasa Indonesia yang mudah dipahami.`;
+INSTRUKSI WAJIB:
+1. SEMUA field harus terisi dengan data yang akurat dan lengkap
+2. Berikan minimal 3 contoh penggunaan dan 3 kata majemuk yang realistis
+3. Etymology harus berisi penjelasan sejarah minimal 2-3 kalimat yang informatif
+4. Usage harus berisi contoh kalimat dan konteks penggunaan minimal 2-3 kalimat yang berguna
+5. Semua bacaan harus dalam hiragana yang benar
+6. Semua arti harus dalam bahasa Indonesia yang mudah dipahami
+7. Jangan ada field yang kosong atau berisi placeholder
+8. Berikan data yang realistis dan sesuai dengan kanji yang dicari
+9. Pastikan JSON format valid dan bisa di-parse
+10. Analisis input "${searchQuery}" dan pilih kanji yang paling relevan dan umum digunakan
+11. HANYA kembalikan JSON tanpa teks tambahan di awal atau akhir`;
 
-        const response = await azureOpenAI.getChatResponse([
-          { role: 'user', content: prompt }
-        ]);
+      console.log('Searching with universal prompt for:', searchQuery);
+      const response = await azureOpenAI.getChatResponse([
+        { role: 'user', content: prompt }
+      ]);
 
-        try {
-          const aiResult = JSON.parse(response);
-          const kanjiResult: KanjiResult = {
-            kanji: aiResult.kanji,
-            onyomi: aiResult.onyomi || [],
-            kunyomi: aiResult.kunyomi || [],
-            meaning: aiResult.meaning || [],
-            examples: aiResult.examples || [],
-            grade: aiResult.grade,
-            strokes: aiResult.strokes,
-            jlptLevel: aiResult.jlptLevel,
-            compounds: aiResult.compounds || [],
-            etymology: aiResult.etymology,
-            usage: aiResult.usage,
-            difficulty: aiResult.difficulty || 'medium'
-          };
-          
-          setResult(kanjiResult);
-          
-          // Add to search history
-          const historyEntry: SearchHistory = {
-            kanji: kanjiResult.kanji,
-            timestamp: new Date(),
-            result: kanjiResult
-          };
-          setSearchHistory(prev => [historyEntry, ...prev.slice(0, 19)]);
-          
-        } catch (parseError) {
-          console.error('Error parsing AI response:', parseError);
-          setError('Terjadi kesalahan saat memproses respons AI. Silakan coba lagi.');
+      console.log('AI Response:', response);
+
+      try {
+        // Clean up response to extract only JSON
+        let cleanedResponse = response.trim();
+        
+        // Remove any text before the first {
+        const jsonStart = cleanedResponse.indexOf('{');
+        if (jsonStart > 0) {
+          cleanedResponse = cleanedResponse.substring(jsonStart);
         }
-      } else {
-        // Fallback untuk pencarian kanji langsung
-        const fallbackResult: KanjiResult = {
-          kanji: kanjiChar,
-          onyomi: [],
-          kunyomi: [],
-          meaning: ['Arti tidak tersedia'],
-          examples: [],
-          difficulty: 'medium'
+        
+        // Remove any text after the last }
+        const jsonEnd = cleanedResponse.lastIndexOf('}');
+        if (jsonEnd > -1) {
+          cleanedResponse = cleanedResponse.substring(0, jsonEnd + 1);
+        }
+        
+        console.log('Cleaned response for parsing:', cleanedResponse);
+        
+        const aiResult = JSON.parse(cleanedResponse);
+        
+        // Validate that we have the essential fields
+        if (!aiResult.kanji || !aiResult.meaning || !Array.isArray(aiResult.meaning)) {
+          throw new Error('Invalid AI response structure');
+        }
+        
+        const kanjiResult: KanjiResult = {
+          kanji: aiResult.kanji,
+          onyomi: Array.isArray(aiResult.onyomi) ? aiResult.onyomi : ['Tidak tersedia'],
+          kunyomi: Array.isArray(aiResult.kunyomi) ? aiResult.kunyomi : ['Tidak tersedia'],
+          meaning: Array.isArray(aiResult.meaning) ? aiResult.meaning : ['Tidak tersedia'],
+          examples: Array.isArray(aiResult.examples) ? aiResult.examples : [],
+          grade: aiResult.grade || 1,
+          strokes: aiResult.strokes || 1,
+          jlptLevel: aiResult.jlptLevel || 'N5',
+          compounds: Array.isArray(aiResult.compounds) ? aiResult.compounds : [],
+          etymology: aiResult.etymology || 'Informasi etimologi tidak tersedia.',
+          usage: aiResult.usage || 'Informasi cara penggunaan tidak tersedia.',
+          difficulty: aiResult.difficulty || 'medium',
+          frequency: aiResult.frequency || 0,
+          components: Array.isArray(aiResult.components) ? aiResult.components : [],
+          radicals: Array.isArray(aiResult.radicals) ? aiResult.radicals : []
         };
-        setResult(fallbackResult);
+        
+        setResult(kanjiResult);
+        
+        // Add to search history
+        const historyEntry: SearchHistory = {
+          kanji: kanjiResult.kanji,
+          timestamp: new Date(),
+          result: kanjiResult
+        };
+        setSearchHistory(prev => [historyEntry, ...prev.slice(0, 19)]);
+        
+      } catch (parseError) {
+        console.error('Error parsing AI response:', parseError);
+        console.log('Raw AI response:', response);
+        
+        // Try to extract kanji from response if JSON parsing fails
+        const kanjiMatch = response.match(/[一-龯]/);
+        if (kanjiMatch) {
+          const extractedKanji = kanjiMatch[0];
+          const fallbackResult: KanjiResult = {
+            kanji: extractedKanji,
+            onyomi: ['Tidak tersedia'],
+            kunyomi: ['Tidak tersedia'],
+            meaning: ['Pencarian berhasil, tetapi detail tidak tersedia dari AI'],
+            examples: [
+              {
+                word: extractedKanji,
+                reading: 'Tidak tersedia',
+                meaning: 'Contoh tidak tersedia',
+                type: 'compound'
+              }
+            ],
+            grade: 1,
+            strokes: 1,
+            jlptLevel: 'N5',
+            compounds: [
+              {
+                word: extractedKanji,
+                reading: 'Tidak tersedia',
+                meaning: 'Kata majemuk tidak tersedia',
+                level: 'N5'
+              }
+            ],
+            etymology: 'Informasi sejarah dan asal usul kanji ini tidak tersedia karena terjadi kesalahan dalam memproses respons AI.',
+            usage: 'Informasi cara penggunaan kanji ini tidak tersedia karena terjadi kesalahan dalam memproses respons AI.',
+            difficulty: 'medium',
+            frequency: 0,
+            components: ['Tidak tersedia'],
+            radicals: ['Tidak tersedia']
+          };
+          setResult(fallbackResult);
+        } else {
+          setError('Tidak dapat memproses respons AI. Silakan coba dengan kata kunci yang berbeda.');
+        }
       }
     } catch (error) {
       console.error('Error searching kanji:', error);
-      setError('Terjadi kesalahan saat mencari kanji. Silakan coba lagi.');
+      setError('Terjadi kesalahan saat mencari kanji. Pastikan Azure OpenAI dikonfigurasi dengan benar di pengaturan admin atau silakan coba lagi.');
     } finally {
       setLoading(false);
     }
@@ -232,7 +323,6 @@ Pastikan semua arti dalam bahasa Indonesia yang mudah dipahami.`;
 
   const handleQuickSearch = (kanji: string) => {
     setQuery(kanji);
-    setSearchType('kanji');
     // Auto-search
     setTimeout(() => {
       const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
@@ -301,26 +391,6 @@ Gunakan bahasa Indonesia yang mudah dipahami dan menarik.`;
 
   const renderSearchForm = () => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Tipe Pencarian</label>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-          {searchTypes.map(type => (
-            <button
-              key={type.value}
-              onClick={() => setSearchType(type.value as any)}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all ${
-                searchType === type.value
-                  ? 'bg-orange-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <type.icon className="h-4 w-4" />
-              <span className="text-sm">{type.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
       <form onSubmit={handleSearch} className="space-y-4">
         <div className="relative">
           <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -328,12 +398,7 @@ Gunakan bahasa Indonesia yang mudah dipahami dan menarik.`;
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={
-              searchType === 'kanji' ? 'Masukkan karakter kanji...' :
-              searchType === 'meaning' ? 'Masukkan arti dalam bahasa Indonesia...' :
-              searchType === 'reading' ? 'Masukkan bacaan (hiragana/katakana)...' :
-              'Deskripsikan kanji yang Anda cari...'
-            }
+            placeholder="Masukkan kanji, arti Indonesia, bacaan hiragana/katakana, atau deskripsi (contoh: 愛, air, みず, kanji untuk elemen air)"
             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
             required
           />
@@ -360,21 +425,61 @@ Gunakan bahasa Indonesia yang mudah dipahami dan menarik.`;
         </div>
       </form>
 
-      {/* Quick Search */}
+      {/* Search Examples */}
       <div className="mt-6">
-        <h4 className="text-sm font-medium text-gray-700 mb-3">Kanji Populer</h4>
-        <div className="flex flex-wrap gap-2">
-          {popularKanji.slice(0, 12).map(kanji => (
-            <button
-              key={kanji}
-              onClick={() => handleQuickSearch(kanji)}
-              className="px-3 py-2 bg-orange-100 text-orange-800 rounded-lg hover:bg-orange-200 transition-colors font-medium"
-            >
-              {kanji}
-            </button>
-          ))}
+        <h4 className="text-sm font-medium text-gray-700 mb-3">Contoh Pencarian</h4>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <h5 className="text-xs font-medium text-gray-600 mb-2">Kanji Langsung:</h5>
+            <div className="flex flex-wrap gap-2">
+              {['愛', '水', '火', '山', '花', '光'].map(kanji => (
+                <button
+                  key={kanji}
+                  onClick={() => {
+                    setQuery(kanji);
+                  }}
+                  className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs hover:bg-orange-200 transition-colors"
+                >
+                  {kanji}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <h5 className="text-xs font-medium text-gray-600 mb-2">Arti Indonesia:</h5>
+            <div className="flex flex-wrap gap-2">
+              {['air', 'api', 'cinta', 'gunung', 'bunga', 'cahaya'].map(word => (
+                <button
+                  key={word}
+                  onClick={() => {
+                    setQuery(word);
+                  }}
+                  className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs hover:bg-blue-200 transition-colors"
+                >
+                  {word}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <h5 className="text-xs font-medium text-gray-600 mb-2">Bacaan Hiragana:</h5>
+            <div className="flex flex-wrap gap-2">
+              {['みず', 'あい', 'やま', 'はな', 'ひかり', 'かぜ'].map(reading => (
+                <button
+                  key={reading}
+                  onClick={() => {
+                    setQuery(reading);
+                  }}
+                  className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs hover:bg-green-200 transition-colors"
+                >
+                  {reading}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
+
     </div>
   );
 
@@ -405,8 +510,15 @@ Gunakan bahasa Indonesia yang mudah dipahami dan menarik.`;
                   </span>
                 )}
               </div>
-              <div className="text-sm text-gray-600">
-                {result.strokes && <span>Goresan: {result.strokes}</span>}
+              <div className="text-sm text-gray-600 space-y-1">
+                {result.strokes && <div>Goresan: {result.strokes}</div>}
+                {result.frequency && <div>Frekuensi: {result.frequency}</div>}
+                {result.components && result.components.length > 0 && (
+                  <div>Komponen: {result.components.join(', ')}</div>
+                )}
+                {result.radicals && result.radicals.length > 0 && (
+                  <div>Radikal: {result.radicals.join(', ')}</div>
+                )}
               </div>
             </div>
           </div>
@@ -453,7 +565,7 @@ Gunakan bahasa Indonesia yang mudah dipahami dan menarik.`;
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-3">Bacaan</h3>
             <div className="space-y-3">
-              {result.onyomi.length > 0 && (
+              {result.onyomi.length > 0 && !result.onyomi.includes('Tidak tersedia') && (
                 <div>
                   <h4 className="text-sm font-medium text-gray-700 mb-1">Onyomi (音読み)</h4>
                   <div className="flex flex-wrap gap-1">
@@ -466,7 +578,7 @@ Gunakan bahasa Indonesia yang mudah dipahami dan menarik.`;
                 </div>
               )}
               
-              {result.kunyomi.length > 0 && (
+              {result.kunyomi.length > 0 && !result.kunyomi.includes('Tidak tersedia') && (
                 <div>
                   <h4 className="text-sm font-medium text-gray-700 mb-1">Kunyomi (訓読み)</h4>
                   <div className="flex flex-wrap gap-1">
@@ -478,16 +590,22 @@ Gunakan bahasa Indonesia yang mudah dipahami dan menarik.`;
                   </div>
                 </div>
               )}
+              
+              {(result.onyomi.includes('Tidak tersedia') || result.kunyomi.includes('Tidak tersedia')) && (
+                <div className="text-sm text-gray-500 italic">
+                  Informasi bacaan tidak tersedia
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Examples */}
-        {result.examples && result.examples.length > 0 && (
+        {result.examples && result.examples.length > 0 && result.examples.some(ex => ex.meaning !== 'Contoh tidak tersedia') && (
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">Contoh Penggunaan</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {result.examples.map((example, index) => (
+              {result.examples.filter(ex => ex.meaning !== 'Contoh tidak tersedia').map((example, index) => (
                 <div key={index} className="bg-gray-50 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-lg font-medium text-gray-900">{example.word}</span>
@@ -508,11 +626,11 @@ Gunakan bahasa Indonesia yang mudah dipahami dan menarik.`;
         )}
 
         {/* Compound Words */}
-        {result.compounds && result.compounds.length > 0 && (
+        {result.compounds && result.compounds.length > 0 && result.compounds.some(comp => comp.meaning !== 'Kata majemuk tidak tersedia') && (
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">Kata Majemuk</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {result.compounds.map((compound, index) => (
+              {result.compounds.filter(comp => comp.meaning !== 'Kata majemuk tidak tersedia').map((compound, index) => (
                 <div key={index} className="bg-green-50 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-lg font-medium text-gray-900">{compound.word}</span>
@@ -529,16 +647,17 @@ Gunakan bahasa Indonesia yang mudah dipahami dan menarik.`;
         )}
 
         {/* Etymology and Usage */}
-        {(result.etymology || result.usage) && (
+        {((result.etymology && result.etymology !== 'Informasi etimologi tidak tersedia.' && !result.etymology.includes('tidak tersedia karena terjadi kesalahan')) || 
+         (result.usage && result.usage !== 'Informasi cara penggunaan tidak tersedia.' && !result.usage.includes('tidak tersedia karena terjadi kesalahan'))) && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {result.etymology && (
+            {result.etymology && result.etymology !== 'Informasi etimologi tidak tersedia.' && !result.etymology.includes('tidak tersedia karena terjadi kesalahan') && (
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Etimologi</h3>
                 <p className="text-gray-700 leading-relaxed">{result.etymology}</p>
               </div>
             )}
             
-            {result.usage && (
+            {result.usage && result.usage !== 'Informasi cara penggunaan tidak tersedia.' && !result.usage.includes('tidak tersedia karena terjadi kesalahan') && (
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Cara Penggunaan</h3>
                 <p className="text-gray-700 leading-relaxed">{result.usage}</p>

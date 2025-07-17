@@ -313,14 +313,51 @@ Catatan: Ini adalah respons simulasi. Untuk penjelasan Azure OpenAI yang sesungg
         throw new Error('No user message found');
       }
 
-      const request: AzureOpenAIRequest = {
-        prompt: latestUserMessage.content,
-        type: 'conversation',
-        context: messages.slice(-5).map(msg => `${msg.role}: ${msg.content}`).join('\n')
-      };
+      // Check if this is a kanji search request
+      const isKanjiSearch = latestUserMessage.content.includes('WAJIB berikan respons dalam format JSON');
+      
+      if (isKanjiSearch) {
+        // Use direct API call for kanji search with proper system message
+        const { endpoint, apiKey, model } = this.getAPIEndpointAndKeyAndModel();
+        
+        const systemPrompt = `You are a Japanese kanji expert. You must respond ONLY with valid JSON format. Do not include any text before or after the JSON. Analyze the user's input and provide comprehensive information about the most relevant kanji. If the input is in Indonesian, find the kanji that matches that meaning. If it's hiragana/katakana, find the kanji with that reading. Always provide complete, accurate information.`;
+        
+        const requestBody = {
+          model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: latestUserMessage.content }
+          ],
+          max_tokens: 1000,
+          temperature: 0.3
+        };
 
-      const response = await this.generateExplanation(request);
-      return response.text;
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'api-key': apiKey,
+          },
+          body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content || '';
+      } else {
+        // Use the original method for non-kanji searches
+        const request: AzureOpenAIRequest = {
+          prompt: latestUserMessage.content,
+          type: 'conversation',
+          context: messages.slice(-5).map(msg => `${msg.role}: ${msg.content}`).join('\n')
+        };
+
+        const response = await this.generateExplanation(request);
+        return response.text;
+      }
     } catch (error) {
       console.error('getChatResponse Error:', error);
       return 'Maaf, terjadi kesalahan saat memproses permintaan Anda. Silakan coba lagi atau periksa pengaturan API.';

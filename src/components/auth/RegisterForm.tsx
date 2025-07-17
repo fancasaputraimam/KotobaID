@@ -1,14 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
-import ReCAPTCHA from 'react-google-recaptcha';
+import ReCaptcha, { ReCaptchaRef } from '../common/ReCaptcha';
 
 interface RegisterFormProps {
   onToggleForm: () => void;
 }
-
-const SITE_KEY = '6Lfg0oIrAAAAADD5dOQgcoy6kPmoM9RscFj-3ulE';
 
 const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleForm }) => {
   const [email, setEmail] = useState('');
@@ -18,8 +16,9 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleForm }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const recaptchaRef = useRef<ReCaptchaRef>(null);
   const { register } = useAuth();
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,21 +34,44 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleForm }) => {
       return;
     }
 
-    if (!captchaToken) {
-      setError('Silakan verifikasi captcha terlebih dahulu.');
+    // Check if reCAPTCHA is completed
+    if (!recaptchaToken) {
+      setError('Silakan verifikasi reCAPTCHA terlebih dahulu');
       return;
     }
 
     setLoading(true);
 
     try {
+      // In a real application, you would send the recaptchaToken to your backend
+      // for verification before proceeding with the registration
       await register(email, password, 'user');
     } catch (error: any) {
       setError('Gagal membuat akun. Silakan coba lagi.');
       console.error('Register error:', error);
+      // Reset reCAPTCHA on error
+      recaptchaRef.current?.reset();
+      setRecaptchaToken(null);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRecaptchaChange = (token: string | null) => {
+    setRecaptchaToken(token);
+    if (token) {
+      setError(''); // Clear error when reCAPTCHA is solved
+    }
+  };
+
+  const handleRecaptchaExpire = () => {
+    setRecaptchaToken(null);
+    setError('reCAPTCHA kedaluwarsa. Silakan verifikasi ulang.');
+  };
+
+  const handleRecaptchaError = () => {
+    setRecaptchaToken(null);
+    setError('Terjadi kesalahan pada reCAPTCHA. Silakan coba lagi.');
   };
 
   return (
@@ -123,10 +145,16 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleForm }) => {
           </div>
         </div>
 
-        <div className="flex justify-center">
-          <ReCAPTCHA
-            sitekey={SITE_KEY}
-            onChange={token => setCaptchaToken(token)}
+        {/* reCAPTCHA */}
+        <div>
+          <ReCaptcha
+            ref={recaptchaRef}
+            onVerify={handleRecaptchaChange}
+            onExpire={handleRecaptchaExpire}
+            onError={handleRecaptchaError}
+            size="normal"
+            theme="light"
+            className="mb-4"
           />
         </div>
 
@@ -138,7 +166,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleForm }) => {
 
         <button
           type="submit"
-          disabled={loading || !captchaToken}
+          disabled={loading || !recaptchaToken}
           className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center font-semibold"
         >
           {loading ? <LoadingSpinner size="sm" /> : 'Daftar Sekarang'}

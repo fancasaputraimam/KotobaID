@@ -99,14 +99,21 @@ const VocabularyLearning: React.FC = () => {
   const loadVocabularies = async () => {
     try {
       setLoading(true);
+      console.log('Loading vocabularies for category:', category);
+      console.log('Selected chapter:', selectedChapter);
+      console.log('Selected level:', selectedLevel);
+      
       let vocabData: Vocabulary[] = [];
       
       if (category === 'chapter') {
-        vocabData = await firestoreService.getVocabulariesByChapter(selectedChapter);
+        vocabData = await firestoreService.getVocabularyByChapter(selectedChapter);
+        console.log('Vocabulary data by chapter:', vocabData);
       } else {
-        vocabData = await firestoreService.getVocabulariesByJLPT(selectedLevel);
+        vocabData = await firestoreService.getVocabularyByJLPT(selectedLevel);
+        console.log('Vocabulary data by JLPT:', vocabData);
       }
       
+      console.log('Total vocabularies loaded:', vocabData.length);
       setVocabularies(vocabData);
       setCurrentPage(1);
       setCurrentFlashcard(0);
@@ -246,8 +253,22 @@ Jawab dalam bahasa Indonesia dengan detail dan mudah dipahami.`;
       </div>
 
       {/* Vocabulary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {paginatedVocabularies.map((vocab) => (
+      {paginatedVocabularies.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="text-6xl mb-4">📚</div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            {vocabularies.length === 0 ? 'Belum ada kosakata' : 'Tidak ada kosakata ditemukan'}
+          </h3>
+          <p className="text-gray-600">
+            {vocabularies.length === 0 
+              ? `Silakan tambahkan kosakata untuk ${category === 'chapter' ? `bab ${selectedChapter}` : `level ${selectedLevel}`} di panel admin`
+              : 'Coba ubah pencarian atau filter yang berbeda'
+            }
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {paginatedVocabularies.map((vocab) => (
           <div key={vocab.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-2">
@@ -285,8 +306,8 @@ Jawab dalam bahasa Indonesia dengan detail dan mudah dipahami.`;
               </div>
             </div>
           </div>
-        ))}
-      </div>
+        ))}</div>
+      )}
     </div>
   );
 
@@ -495,8 +516,8 @@ Jawab dalam bahasa Indonesia dengan detail dan mudah dipahami.`;
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   {chapters.map(chapter => (
-                    <option key={chapter.id} value={chapter.id}>
-                      Bab {chapter.id}: {chapter.name}
+                    <option key={chapter.id} value={chapter.number}>
+                      Bab {chapter.number}: {chapter.title}
                     </option>
                   ))}
                 </select>

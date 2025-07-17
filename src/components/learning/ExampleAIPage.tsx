@@ -81,7 +81,9 @@ import {
   Power,
   PowerOff
 } from 'lucide-react';
+import { firestoreService } from '../../services/firestoreService';
 import { azureOpenAI } from '../../services/azureOpenAI';
+import { Grammar, Chapter } from '../../types';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 interface ExampleSentence {
@@ -97,9 +99,8 @@ interface ExampleSentence {
 }
 
 interface ExampleRequest {
-  word: string;
-  type: 'kanji' | 'vocabulary' | 'grammar' | 'expression';
-  level: 'N5' | 'N4' | 'N3' | 'N2' | 'N1' | 'mixed';
+  selectedGrammar: string;
+  chapter: number;
   count: number;
   context: string;
   includeRomaji: boolean;
@@ -108,13 +109,14 @@ interface ExampleRequest {
 
 const ExampleAIPage: React.FC = () => {
   const [examples, setExamples] = useState<ExampleSentence[]>([]);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [grammars, setGrammars] = useState<Grammar[]>([]);
   const [currentRequest, setCurrentRequest] = useState<ExampleRequest>({
-    word: '',
-    type: 'vocabulary',
-    level: 'N5',
+    selectedGrammar: '',
+    chapter: 1,
     count: 5,
     context: 'daily',
-    includeRomaji: true,
+    includeRomaji: false,
     includeFurigana: true
   });
   const [loading, setLoading] = useState(false);
@@ -130,13 +132,108 @@ const ExampleAIPage: React.FC = () => {
   const [savedExamples, setSavedExamples] = useState<ExampleSentence[]>([]);
   const [activeTab, setActiveTab] = useState<'generator' | 'saved'>('generator');
   const [generationHistory, setGenerationHistory] = useState<string[]>([]);
+  const [chaptersLoading, setChaptersLoading] = useState(true);
 
-  const exampleTypes = [
-    { value: 'kanji', label: 'Kanji', icon: BookOpen },
-    { value: 'vocabulary', label: 'Kosakata', icon: Globe },
-    { value: 'grammar', label: 'Tata Bahasa', icon: FileText },
-    { value: 'expression', label: 'Ekspresi', icon: MessageCircle }
-  ];
+  useEffect(() => {
+    console.log('Component mounted, loading chapters...');
+    loadChapters();
+  }, []);
+
+  useEffect(() => {
+    console.log('Chapter changed to:', currentRequest.chapter);
+    if (currentRequest.chapter) {
+      loadGrammars();
+    }
+  }, [currentRequest.chapter]);
+
+  // Debug state changes
+  useEffect(() => {
+    console.log('Chapters state updated:', chapters);
+    console.log('Chapters length:', chapters.length);
+  }, [chapters]);
+
+  const loadChapters = async () => {
+    try {
+      setChaptersLoading(true);
+      console.log('Loading chapters...');
+      
+      // Try to get chapters from chapters collection first
+      let chaptersData = await firestoreService.getAllChapters();
+      console.log('Chapters from chapters collection:', chaptersData);
+      
+      // If no chapters collection, get unique chapters from grammar data
+      if (chaptersData.length === 0) {
+        console.log('No chapters collection found, getting chapters from grammar data...');
+        const grammarsData = await firestoreService.getGrammars();
+        console.log('All grammars:', grammarsData);
+        
+        // Get unique chapter numbers from grammar data
+        const uniqueChapters = [...new Set(grammarsData.map(g => g.chapter))].sort((a, b) => a - b);
+        console.log('Unique chapters from grammar:', uniqueChapters);
+        
+        // Create chapter objects from grammar data
+        chaptersData = uniqueChapters.map(chapterNum => ({
+          id: chapterNum.toString(),
+          number: chapterNum,
+          title: `Bab ${chapterNum}`,
+          description: `Materi Bab ${chapterNum}`,
+          grammarTopics: [],
+          vocabulary: [],
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }));
+      }
+      
+      console.log('Final chapters data:', chaptersData);
+      console.log('Number of chapters:', chaptersData.length);
+      
+      setChapters(chaptersData);
+      if (chaptersData.length > 0) {
+        const firstChapter = chaptersData[0];
+        console.log('First chapter:', firstChapter);
+        setCurrentRequest(prev => {
+          console.log('Updating current request with chapter:', firstChapter.number);
+          return { ...prev, chapter: firstChapter.number };
+        });
+      } else {
+        console.log('No chapters found in Firestore');
+      }
+    } catch (error) {
+      console.error('Error loading chapters:', error);
+      setChapters([]);
+    } finally {
+      setChaptersLoading(false);
+    }
+  };
+
+  const loadGrammars = async () => {
+    try {
+      console.log('Loading grammars for chapter:', currentRequest.chapter);
+      const grammarsData = await firestoreService.getGrammarByChapter(currentRequest.chapter);
+      console.log('Grammars loaded:', grammarsData);
+      setGrammars(grammarsData);
+      if (grammarsData.length > 0) {
+        const firstPattern = grammarsData[0].pattern || grammarsData[0].title;
+        setCurrentRequest(prev => {
+          console.log('Setting grammar from', prev.selectedGrammar, 'to', firstPattern);
+          return { 
+            ...prev, 
+            selectedGrammar: firstPattern
+          };
+        });
+        console.log('Set initial grammar to:', firstPattern);
+      } else {
+        console.log('No grammars found for chapter:', currentRequest.chapter);
+        setCurrentRequest(prev => ({ ...prev, selectedGrammar: '' }));
+      }
+    } catch (error) {
+      console.error('Error loading grammars:', error);
+      setGrammars([]);
+      setCurrentRequest(prev => ({ ...prev, selectedGrammar: '' }));
+    }
+  };
+
 
   const jlptLevels = [
     { value: 'N5', label: 'N5 (Pemula)', color: 'bg-green-100 text-green-800' },
@@ -160,104 +257,222 @@ const ExampleAIPage: React.FC = () => {
     { value: 'family', label: 'Keluarga & Hubungan' }
   ];
 
+  const generatePatternExamples = (pattern: string, count: number): ExampleSentence[] => {
+    const vocabulary = {
+      people: [
+        { jp: 'わたし', id: 'saya' },
+        { jp: 'あなた', id: 'kamu' },
+        { jp: 'かれ', id: 'dia (laki-laki)' },
+        { jp: 'かのじょ', id: 'dia (perempuan)' },
+        { jp: 'ともだち', id: 'teman' },
+        { jp: 'せんせい', id: 'guru' },
+        { jp: 'がくせい', id: 'siswa' },
+        { jp: 'かぞく', id: 'keluarga' }
+      ],
+      things: [
+        { jp: 'ほん', id: 'buku' },
+        { jp: 'えんぴつ', id: 'pensil' },
+        { jp: 'かばん', id: 'tas' },
+        { jp: 'でんわ', id: 'telepon' },
+        { jp: 'くるま', id: 'mobil' },
+        { jp: 'いえ', id: 'rumah' },
+        { jp: 'がっこう', id: 'sekolah' },
+        { jp: 'みず', id: 'air' }
+      ],
+      adjectives: [
+        { jp: 'おおきい', id: 'besar' },
+        { jp: 'ちいさい', id: 'kecil' },
+        { jp: 'あつい', id: 'panas' },
+        { jp: 'さむい', id: 'dingin' },
+        { jp: 'おいしい', id: 'enak' },
+        { jp: 'たのしい', id: 'menyenangkan' },
+        { jp: 'きれい', id: 'cantik/bersih' },
+        { jp: 'あたらしい', id: 'baru' }
+      ],
+      verbs: [
+        { jp: 'たべます', id: 'makan' },
+        { jp: 'のみます', id: 'minum' },
+        { jp: 'いきます', id: 'pergi' },
+        { jp: 'きます', id: 'datang' },
+        { jp: 'みます', id: 'melihat' },
+        { jp: 'ききます', id: 'mendengar' },
+        { jp: 'よみます', id: 'membaca' },
+        { jp: 'かきます', id: 'menulis' }
+      ]
+    };
+
+    const examples: ExampleSentence[] = [];
+    const patternLower = pattern.toLowerCase();
+    
+    for (let i = 0; i < count; i++) {
+      let sentence = '';
+      let meaning = '';
+      let category = 'Grammar';
+      
+      // Generate based on common grammar patterns
+      if (patternLower.includes('です') || patternLower.includes('desu')) {
+        const person = vocabulary.people[Math.floor(Math.random() * vocabulary.people.length)];
+        const thing = vocabulary.things[Math.floor(Math.random() * vocabulary.things.length)];
+        sentence = `${person.jp}は${thing.jp}です。`;
+        meaning = `${person.id} adalah ${thing.id}.`;
+        category = 'です/である';
+      } else if (patternLower.includes('じゃありません') || patternLower.includes('ではありません')) {
+        const person = vocabulary.people[Math.floor(Math.random() * vocabulary.people.length)];
+        const thing = vocabulary.things[Math.floor(Math.random() * vocabulary.things.length)];
+        sentence = `${person.jp}は${thing.jp}じゃありません。`;
+        meaning = `${person.id} bukan ${thing.id}.`;
+        category = 'Negative です';
+      } else if (patternLower.includes('ます')) {
+        const person = vocabulary.people[Math.floor(Math.random() * vocabulary.people.length)];
+        const verb = vocabulary.verbs[Math.floor(Math.random() * vocabulary.verbs.length)];
+        sentence = `${person.jp}は${verb.jp}。`;
+        meaning = `${person.id} ${verb.id}.`;
+        category = 'Verb ます';
+      } else if (patternLower.includes('ません')) {
+        const person = vocabulary.people[Math.floor(Math.random() * vocabulary.people.length)];
+        const verbBase = vocabulary.verbs[Math.floor(Math.random() * vocabulary.verbs.length)];
+        const negativeVerb = verbBase.jp.replace('ます', 'ません');
+        sentence = `${person.jp}は${negativeVerb}。`;
+        meaning = `${person.id} tidak ${verbBase.id}.`;
+        category = 'Negative Verb';
+      } else if (patternLower.includes('が好き') || patternLower.includes('がすき')) {
+        const person = vocabulary.people[Math.floor(Math.random() * vocabulary.people.length)];
+        const thing = vocabulary.things[Math.floor(Math.random() * vocabulary.things.length)];
+        sentence = `${person.jp}は${thing.jp}がすきです。`;
+        meaning = `${person.id} suka ${thing.id}.`;
+        category = 'Preference';
+      } else if (patternLower.includes('に行き') || patternLower.includes('にいき')) {
+        const person = vocabulary.people[Math.floor(Math.random() * vocabulary.people.length)];
+        const place = vocabulary.things[Math.floor(Math.random() * vocabulary.things.length)];
+        sentence = `${person.jp}は${place.jp}にいきます。`;
+        meaning = `${person.id} pergi ke ${place.id}.`;
+        category = 'Movement';
+      } else {
+        // Default pattern - simple sentence
+        const person = vocabulary.people[Math.floor(Math.random() * vocabulary.people.length)];
+        const adj = vocabulary.adjectives[Math.floor(Math.random() * vocabulary.adjectives.length)];
+        sentence = `${person.jp}は${adj.jp}です。`;
+        meaning = `${person.id} ${adj.id}.`;
+        category = 'Adjective';
+      }
+
+      examples.push({
+        id: `example-${i + 1}`,
+        japanese: sentence,
+        romaji: '', // No romaji as requested
+        indonesian: meaning,
+        context: 'Generated example',
+        level: 'N5',
+        category: category
+      });
+    }
+
+    return examples;
+  };
+
   const generateExamples = async () => {
-    if (!currentRequest.word.trim()) {
-      alert('Silakan masukkan kata atau frasa yang ingin Anda contohkan.');
+    console.log('generateExamples called!');
+    console.log('Current request:', currentRequest);
+    
+    if (!currentRequest.selectedGrammar.trim()) {
+      alert('Silakan pilih pola tata bahasa terlebih dahulu.');
       return;
     }
 
     setLoading(true);
+    setExamples([]); // Clear previous examples
+    
     try {
       // Add randomization seed for variety
       const randomSeed = Math.floor(Math.random() * 10000);
       const timestamp = Date.now();
       const contextLabel = contextOptions.find(c => c.value === currentRequest.context)?.label || 'Umum';
-      const typeLabel = exampleTypes.find(t => t.value === currentRequest.type)?.label || 'Kata';
       
-      const prompt = `[ID: ${randomSeed}-${timestamp}] Buatkan ${currentRequest.count} contoh kalimat bahasa Jepang BARU dan BERVARIASI untuk ${typeLabel.toLowerCase()} "${currentRequest.word}" dengan kriteria berikut:
-- Level JLPT: ${currentRequest.level === 'mixed' ? 'campuran N5-N1' : currentRequest.level}
-- Konteks: ${contextLabel}
-- Tipe: ${typeLabel}
-- Sertakan furigana: ${currentRequest.includeFurigana ? 'Ya' : 'Tidak'}
-- Sertakan romaji: ${currentRequest.includeRomaji ? 'Ya' : 'Tidak'}
+      console.log('=== GENERATING NEW EXAMPLES ===');
+      console.log('Selected grammar pattern:', currentRequest.selectedGrammar);
+      console.log('Chapter:', currentRequest.chapter);
+      console.log('Context:', contextLabel);
+      console.log('Count:', currentRequest.count);
+      console.log('Random seed:', randomSeed);
+      
+      const prompt = `Buat ${currentRequest.count} contoh kalimat bahasa Jepang menggunakan pola "${currentRequest.selectedGrammar}".
 
-PENTING: Buat kalimat yang BERBEDA dan KREATIF. Gunakan:
-- Situasi yang bervariasi dan menarik
-- Struktur kalimat yang berbeda-beda
-- Konteks yang beragam dalam kategori ${contextLabel}
-- Gaya bicara yang bervariasi (formal/informal)
-- JANGAN mengulang kalimat yang sama atau mirip
+ATURAN:
+- Hanya hiragana/katakana (tanpa kanji)
+- Ikuti pola "${currentRequest.selectedGrammar}" persis
+- Buat ${currentRequest.count} kalimat berbeda
 
-Format jawaban dalam JSON dengan struktur:
-{
-  "examples": [
-    {
-      "id": "1",
-      "japanese": "Kalimat bahasa Jepang${currentRequest.includeFurigana ? ' dengan furigana' : ''}",
-      "romaji": "${currentRequest.includeRomaji ? 'Bacaan romaji' : ''}",
-      "indonesian": "Terjemahan bahasa Indonesia",
-      "context": "Konteks penggunaan dalam bahasa Indonesia",
-      "level": "N5/N4/N3/N2/N1",
-      "category": "Kategori kalimat (misal: daily_conversation, business_meeting, dll)"
-    }
-  ]
-}
+Format jawaban:
+1. [kalimat hiragana] = [arti indonesia]
+2. [kalimat hiragana] = [arti indonesia]
+3. [kalimat hiragana] = [arti indonesia]
 
-Pastikan:
-1. Kalimat BERVARIASI, natural, dan BERBEDA dari generator sebelumnya
-2. Mencakup berbagai situasi UNIK dalam konteks yang dipilih
-3. Sesuai dengan level JLPT yang diminta
-4. ${currentRequest.includeRomaji ? 'Romaji akurat dan mudah dibaca' : ''}
-5. Terjemahan Indonesia yang tepat dan natural
-6. Konteks yang jelas dan membantu pemahaman
-7. Kategori yang sesuai dengan konteks
-8. ${currentRequest.includeFurigana ? 'Furigana untuk semua kanji' : 'Tanpa furigana'}
-9. KREATIVITAS tinggi dalam pembuatan kalimat
-10. TIDAK mengulang pola atau contoh yang sama`;
+Contoh jika pola "じゃありません":
+1. わたしはがくせいじゃありません = Saya bukan siswa
+2. これはほんじゃありません = Ini bukan buku`;
 
+      // Use real AI service directly
+      console.log('Using real AI service for pattern:', currentRequest.selectedGrammar);
+      
       const response = await azureOpenAI.getChatResponse([
         { role: 'user', content: prompt }
       ]);
-
-      try {
-        const data = JSON.parse(response);
-        const newExamples = data.examples.map((example: any) => ({
-          ...example,
-          favorite: false
-        }));
-        setExamples(newExamples);
-        setCurrentExampleIndex(0);
-        
-        // Add to generation history
-        setGenerationHistory(prev => [currentRequest.word, ...prev.slice(0, 9)]);
-      } catch (parseError) {
-        console.error('Error parsing examples data:', parseError);
-        console.log('Raw response:', response);
-        
-        // Generate random fallback examples
-        const fallbackPatterns = [
-          `${currentRequest.word}を使います。`,
-          `${currentRequest.word}が好きです。`,
-          `${currentRequest.word}について話しましょう。`,
-          `${currentRequest.word}を覚えています。`,
-          `${currentRequest.word}は大切です。`
-        ];
-        
-        const fallbackExamples: ExampleSentence[] = [];
-        for (let i = 0; i < Math.min(currentRequest.count, 3); i++) {
-          const randomPattern = fallbackPatterns[Math.floor(Math.random() * fallbackPatterns.length)];
-          fallbackExamples.push({
-            id: (i + 1).toString(),
-            japanese: randomPattern,
-            romaji: currentRequest.includeRomaji ? 'Romaji akan ditampilkan di sini' : '',
-            indonesian: `Contoh penggunaan ${currentRequest.word} dalam kalimat.`,
-            context: `Situasi ${i + 1} dengan ${currentRequest.word}`,
-            level: currentRequest.level === 'mixed' ? 'N5' : currentRequest.level,
-            category: `${currentRequest.context}_${i + 1}`
-          });
+      
+      console.log('AI Response:', response);
+      
+      // Parse AI response to extract examples
+      const lines = response.split('\n').filter(line => line.trim());
+      const examples: ExampleSentence[] = [];
+      
+      let exampleCount = 0;
+      for (const line of lines) {
+        if (line.match(/^\d+\.\s*/) && exampleCount < currentRequest.count) {
+          const match = line.match(/^\d+\.\s*(.+?)\s*=\s*(.+)$/);
+          if (match) {
+            const [, japanese, indonesian] = match;
+            examples.push({
+              id: `ai-example-${exampleCount + 1}`,
+              japanese: japanese.trim(),
+              romaji: '',
+              indonesian: indonesian.trim(),
+              context: contextLabel,
+              level: 'N5',
+              category: 'AI Generated'
+            });
+            exampleCount++;
+          }
         }
-        setExamples(fallbackExamples);
       }
+      
+      // If parsing fails, try alternative parsing
+      if (examples.length === 0) {
+        const cleanResponse = response.replace(/^\d+\.\s*/gm, '');
+        const parts = cleanResponse.split('=');
+        if (parts.length >= 2) {
+          for (let i = 0; i < parts.length - 1 && i < currentRequest.count; i++) {
+            const japanese = parts[i].trim();
+            const indonesian = parts[i + 1].split('\n')[0].trim();
+            if (japanese && indonesian) {
+              examples.push({
+                id: `ai-example-${i + 1}`,
+                japanese: japanese,
+                romaji: '',
+                indonesian: indonesian,
+                context: contextLabel,
+                level: 'N5',
+                category: 'AI Generated'
+              });
+            }
+          }
+        }
+      }
+      
+      console.log('Parsed examples:', examples);
+      setExamples(examples);
+      setCurrentExampleIndex(0);
+      
+      // Add to generation history
+      setGenerationHistory(prev => [currentRequest.selectedGrammar, ...prev.slice(0, 9)]);
     } catch (error) {
       console.error('Error generating examples:', error);
       alert('Terjadi kesalahan saat membuat contoh kalimat. Silakan coba lagi.');
@@ -409,36 +624,39 @@ Pastikan:
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Kata/Frasa yang ingin dicontohkan
+                  Pilih Bab
                 </label>
-                <input
-                  type="text"
-                  value={currentRequest.word}
-                  onChange={(e) => setCurrentRequest(prev => ({ ...prev, word: e.target.value }))}
-                  placeholder="Masukkan kata atau frasa..."
+                <select
+                  value={currentRequest.chapter}
+                  onChange={(e) => setCurrentRequest(prev => ({ ...prev, chapter: Number(e.target.value) }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
+                >
+                  {(() => {
+                    console.log('Rendering dropdown - chapters.length:', chapters.length);
+                    console.log('Current chapters:', chapters);
+                    console.log('Current request chapter:', currentRequest.chapter);
+                    console.log('Chapters loading:', chaptersLoading);
+                    
+                    if (chaptersLoading) {
+                      return <option value="">Memuat bab...</option>;
+                    }
+                    
+                    if (chapters.length === 0) {
+                      return <option value="">Tidak ada bab tersedia</option>;
+                    }
+                    
+                    return chapters.map(chapter => {
+                      console.log('Rendering chapter option:', chapter);
+                      return (
+                        <option key={chapter.id} value={chapter.number}>
+                          Bab {chapter.number}: {chapter.title}
+                        </option>
+                      );
+                    });
+                  })()}
+                </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tipe</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {exampleTypes.map(type => (
-                    <button
-                      key={type.value}
-                      onClick={() => setCurrentRequest(prev => ({ ...prev, type: type.value as any }))}
-                      className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all ${
-                        currentRequest.type === type.value
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      <type.icon className="h-4 w-4" />
-                      <span className="text-sm">{type.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Konteks</label>
@@ -458,22 +676,26 @@ Pastikan:
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Level JLPT</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {jlptLevels.map(level => (
-                    <button
-                      key={level.value}
-                      onClick={() => setCurrentRequest(prev => ({ ...prev, level: level.value as any }))}
-                      className={`px-3 py-2 rounded-lg font-medium transition-all ${
-                        currentRequest.level === level.value
-                          ? level.color
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      <span className="text-sm">{level.label}</span>
-                    </button>
-                  ))}
-                </div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Pola Tata Bahasa</label>
+                <select
+                  value={currentRequest.selectedGrammar}
+                  onChange={(e) => setCurrentRequest(prev => ({ ...prev, selectedGrammar: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  disabled={grammars.length === 0}
+                >
+                  {grammars.length === 0 ? (
+                    <option value="">
+                      {currentRequest.chapter ? `Memuat tata bahasa bab ${currentRequest.chapter}...` : 'Pilih bab terlebih dahulu'}
+                    </option>
+                  ) : (
+                    grammars.map(grammar => (
+                      <option key={grammar.id} value={grammar.pattern || grammar.title}>
+                        {grammar.pattern || grammar.title}
+                        {(grammar.meaning || grammar.explanation) && ` - ${(grammar.meaning || grammar.explanation).substring(0, 50)}${(grammar.meaning || grammar.explanation).length > 50 ? '...' : ''}`}
+                      </option>
+                    ))
+                  )}
+                </select>
               </div>
 
               <div>
@@ -537,9 +759,23 @@ Pastikan:
           </div>
 
           <div className="flex justify-center">
+            {(() => {
+              const isDisabled = loading || !currentRequest.selectedGrammar.trim();
+              console.log('Button disabled?', isDisabled);
+              console.log('Reason - Loading:', loading);
+              console.log('Reason - Selected grammar empty:', !currentRequest.selectedGrammar.trim());
+              console.log('Selected grammar value:', `"${currentRequest.selectedGrammar}"`);
+              return null;
+            })()}
             <button
-              onClick={generateExamples}
-              disabled={loading || !currentRequest.word.trim()}
+              onClick={() => {
+                console.log('Generate button clicked!');
+                console.log('Current request:', currentRequest);
+                console.log('Selected grammar:', currentRequest.selectedGrammar);
+                console.log('Loading state:', loading);
+                generateExamples();
+              }}
+              disabled={loading || !currentRequest.selectedGrammar.trim()}
               className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50"
             >
               {loading ? (

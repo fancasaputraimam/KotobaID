@@ -119,6 +119,353 @@ const JLPTAIPage: React.FC = () => {
     return () => clearInterval(interval);
   }, [isTimerActive, currentSession]);
 
+  const generateFallbackQuestions = (level: string, type: string, count: number): JLPTQuestion[] => {
+    const questionBank = {
+      N5: {
+        grammar: [
+          {
+            question: 'Manakah cara yang benar untuk mengatakan "Saya adalah siswa" dalam bahasa Jepang?',
+            options: ['私は学生です', '私は先生です', '私は医者です', '私は会社員です'],
+            correctAnswer: '私は学生です',
+            explanation: 'がくせい (gakusei) berarti siswa, sedangkan です (desu) adalah kopula yang sopan untuk menyatakan "adalah".',
+            topic: 'Pengenalan Diri',
+            difficulty: 'easy' as const
+          },
+          {
+            question: 'Bagaimana cara mengatakan "Ini bukan buku" dalam bahasa Jepang?',
+            options: ['これは本です', 'これは本じゃありません', 'これは本でした', 'これは本でしょう'],
+            correctAnswer: 'これは本じゃありません',
+            explanation: 'じゃありません adalah bentuk negatif dari です yang digunakan untuk menyatakan "bukan".',
+            topic: 'Negasi',
+            difficulty: 'easy' as const
+          },
+          {
+            question: 'Bentuk sopan dari "たべる" (makan) adalah?',
+            options: ['たべます', 'たべました', 'たべません', 'たべるです'],
+            correctAnswer: 'たべます',
+            explanation: 'たべます adalah bentuk sopan (masu-form) dari kata kerja たべる yang berarti "makan".',
+            topic: 'Bentuk Sopan Kata Kerja',
+            difficulty: 'medium' as const
+          }
+        ],
+        vocabulary: [
+          {
+            question: 'Apa arti dari kata "がっこう" dalam bahasa Indonesia?',
+            options: ['Rumah', 'Sekolah', 'Kantor', 'Toko'],
+            correctAnswer: 'Sekolah',
+            explanation: 'がっこう (gakkou) berarti sekolah dalam bahasa Indonesia.',
+            topic: 'Tempat',
+            difficulty: 'easy' as const
+          },
+          {
+            question: 'Kata yang tepat untuk "teman" dalam bahasa Jepang adalah?',
+            options: ['ともだち', 'せんせい', 'かぞく', 'こども'],
+            correctAnswer: 'ともだち',
+            explanation: 'ともだち (tomodachi) berarti teman dalam bahasa Jepang.',
+            topic: 'Hubungan Sosial',
+            difficulty: 'easy' as const
+          },
+          {
+            question: 'Apa arti dari "おかね" dalam bahasa Indonesia?',
+            options: ['Makanan', 'Uang', 'Baju', 'Rumah'],
+            correctAnswer: 'Uang',
+            explanation: 'おかね (okane) berarti uang dalam bahasa Indonesia.',
+            topic: 'Benda Sehari-hari',
+            difficulty: 'medium' as const
+          }
+        ],
+        kanji: [
+          {
+            question: 'Bagaimana cara membaca kanji "人"?',
+            options: ['ひと', 'いえ', 'みず', 'やま'],
+            correctAnswer: 'ひと',
+            explanation: 'Kanji "人" dibaca "ひと" (hito) yang berarti orang.',
+            topic: 'Kanji Dasar',
+            difficulty: 'easy' as const
+          },
+          {
+            question: 'Apa arti dari kanji "日"?',
+            options: ['Bulan', 'Hari/Matahari', 'Bintang', 'Awan'],
+            correctAnswer: 'Hari/Matahari',
+            explanation: 'Kanji "日" berarti hari atau matahari, dibaca "ひ" (hi) atau "にち" (nichi).',
+            topic: 'Kanji Waktu',
+            difficulty: 'easy' as const
+          },
+          {
+            question: 'Kanji "水" memiliki arti?',
+            options: ['Api', 'Tanah', 'Air', 'Udara'],
+            correctAnswer: 'Air',
+            explanation: 'Kanji "水" berarti air, dibaca "みず" (mizu).',
+            topic: 'Kanji Elemen',
+            difficulty: 'easy' as const
+          }
+        ],
+        reading: [
+          {
+            question: 'Bacaan yang benar untuk "私の本" adalah?',
+            options: ['わたしのほん', 'わたくしのほん', 'わたしのもと', 'わたくしのもと'],
+            correctAnswer: 'わたしのほん',
+            explanation: '"私の本" dibaca "わたしのほん" (watashi no hon) yang berarti "buku saya".',
+            topic: 'Bacaan Hiragana',
+            difficulty: 'easy' as const
+          }
+        ]
+      },
+      N4: {
+        grammar: [
+          {
+            question: 'Bentuk て-form dari "読む" (yomu) adalah?',
+            options: ['読んで', '読みて', '読むで', '読めて'],
+            correctAnswer: '読んで',
+            explanation: 'て-form dari 読む adalah 読んで (yonde), mengikuti aturan konjugasi kata kerja grup 1.',
+            topic: 'て-form',
+            difficulty: 'medium' as const
+          },
+          {
+            question: 'Ungkapan yang tepat untuk "sedang makan" adalah?',
+            options: ['食べています', '食べました', '食べます', '食べるです'],
+            correctAnswer: '食べています',
+            explanation: '食べています menunjukkan tindakan yang sedang berlangsung (present continuous).',
+            topic: 'Present Continuous',
+            difficulty: 'medium' as const
+          }
+        ],
+        vocabulary: [
+          {
+            question: 'Apa arti dari "きのう" dalam bahasa Indonesia?',
+            options: ['Hari ini', 'Besok', 'Kemarin', 'Lusa'],
+            correctAnswer: 'Kemarin',
+            explanation: 'きのう (kinou) berarti kemarin dalam bahasa Indonesia.',
+            topic: 'Waktu',
+            difficulty: 'easy' as const
+          }
+        ],
+        kanji: [
+          {
+            question: 'Bagaimana cara membaca kanji "時間"?',
+            options: ['じかん', 'しかん', 'じけん', 'しけん'],
+            correctAnswer: 'じかん',
+            explanation: '時間 dibaca "じかん" (jikan) yang berarti waktu.',
+            topic: 'Kanji Waktu',
+            difficulty: 'medium' as const
+          }
+        ],
+        reading: [
+          {
+            question: 'Bacaan yang benar untuk "今日は暑いです" adalah?',
+            options: ['きょうはあついです', 'こんにちはあついです', 'きょうはあつです', 'こんにちはあつです'],
+            correctAnswer: 'きょうはあついです',
+            explanation: '"今日は暑いです" dibaca "きょうはあついです" (kyou wa atsui desu) yang berarti "hari ini panas".',
+            topic: 'Bacaan Campuran',
+            difficulty: 'medium' as const
+          }
+        ]
+      },
+      N3: {
+        grammar: [
+          {
+            question: 'Penggunaan "〜そうです" yang benar adalah?',
+            options: ['Menunjukkan kelihatan', 'Menunjukkan kemungkinan', 'Menunjukkan keharusan', 'Menunjukkan larangan'],
+            correctAnswer: 'Menunjukkan kelihatan',
+            explanation: '〜そうです digunakan untuk menyatakan bahwa sesuatu "kelihatan" atau "tampak" memiliki sifat tertentu.',
+            topic: 'Ekspresi Keadaan',
+            difficulty: 'hard' as const
+          }
+        ],
+        vocabulary: [
+          {
+            question: 'Apa arti dari "けいけん" dalam bahasa Indonesia?',
+            options: ['Pengalaman', 'Percobaan', 'Pelajaran', 'Kejadian'],
+            correctAnswer: 'Pengalaman',
+            explanation: 'けいけん (keiken) berarti pengalaman dalam bahasa Indonesia.',
+            topic: 'Konsep Abstrak',
+            difficulty: 'medium' as const
+          }
+        ],
+        kanji: [
+          {
+            question: 'Bagaimana cara membaca kanji "経験"?',
+            options: ['けいけん', 'きょうけん', 'けいげん', 'きょうげん'],
+            correctAnswer: 'けいけん',
+            explanation: '経験 dibaca "けいけん" (keiken) yang berarti pengalaman.',
+            topic: 'Kanji Abstrak',
+            difficulty: 'hard' as const
+          }
+        ],
+        reading: [
+          {
+            question: 'Dalam kalimat "彼は忙しそうです", apa arti dari "忙しそう"?',
+            options: ['Sangat sibuk', 'Kelihatan sibuk', 'Akan sibuk', 'Sudah sibuk'],
+            correctAnswer: 'Kelihatan sibuk',
+            explanation: '"忙しそう" berarti "kelihatan sibuk", menggunakan pola 〜そう untuk menyatakan kesan visual.',
+            topic: 'Ekspresi Visual',
+            difficulty: 'hard' as const
+          }
+        ]
+      },
+      N2: {
+        grammar: [
+          {
+            question: 'Penggunaan "〜にもかかわらず" yang tepat adalah?',
+            options: ['Meskipun', 'Karena', 'Supaya', 'Ketika'],
+            correctAnswer: 'Meskipun',
+            explanation: '〜にもかかわらず digunakan untuk menyatakan "meskipun" atau "walaupun" dalam situasi formal.',
+            topic: 'Ekspresi Kontras',
+            difficulty: 'hard' as const
+          }
+        ],
+        vocabulary: [
+          {
+            question: 'Apa arti dari "せきにん" dalam bahasa Indonesia?',
+            options: ['Tanggung jawab', 'Kewajiban', 'Hak', 'Tugas'],
+            correctAnswer: 'Tanggung jawab',
+            explanation: 'せきにん (sekinin) berarti tanggung jawab dalam bahasa Indonesia.',
+            topic: 'Konsep Sosial',
+            difficulty: 'medium' as const
+          }
+        ],
+        kanji: [
+          {
+            question: 'Bagaimana cara membaca kanji "責任"?',
+            options: ['せきにん', 'しゃくにん', 'せきじん', 'しゃくじん'],
+            correctAnswer: 'せきにん',
+            explanation: '責任 dibaca "せきにん" (sekinin) yang berarti tanggung jawab.',
+            topic: 'Kanji Sosial',
+            difficulty: 'hard' as const
+          }
+        ],
+        reading: [
+          {
+            question: 'Dalam konteks bisnis, "会議" paling tepat diartikan sebagai?',
+            options: ['Rapat', 'Pertemuan', 'Diskusi', 'Seminar'],
+            correctAnswer: 'Rapat',
+            explanation: '"会議" (kaigi) dalam konteks bisnis berarti rapat atau meeting formal.',
+            topic: 'Konteks Bisnis',
+            difficulty: 'hard' as const
+          }
+        ]
+      },
+      N1: {
+        grammar: [
+          {
+            question: 'Nuansa dari "〜をものともせず" adalah?',
+            options: ['Tidak peduli dengan kesulitan', 'Menghormati sesuatu', 'Menganggap mudah', 'Takut menghadapi'],
+            correctAnswer: 'Tidak peduli dengan kesulitan',
+            explanation: '〜をものともせず berarti "tidak peduli dengan" atau "mengabaikan" kesulitan atau hambatan.',
+            topic: 'Ekspresi Tingkat Tinggi',
+            difficulty: 'hard' as const
+          }
+        ],
+        vocabulary: [
+          {
+            question: 'Apa arti dari "がいりゃく" dalam bahasa Indonesia?',
+            options: ['Secara umum', 'Secara khusus', 'Secara detail', 'Secara singkat'],
+            correctAnswer: 'Secara umum',
+            explanation: 'がいりゃく (gairyaku) berarti secara umum atau garis besar.',
+            topic: 'Ekspresi Akademik',
+            difficulty: 'hard' as const
+          }
+        ],
+        kanji: [
+          {
+            question: 'Bagaimana cara membaca kanji "概略"?',
+            options: ['がいりゃく', 'がいりょう', 'かいりゃく', 'かいりょう'],
+            correctAnswer: 'がいりゃく',
+            explanation: '概略 dibaca "がいりゃく" (gairyaku) yang berarti garis besar atau secara umum.',
+            topic: 'Kanji Akademik',
+            difficulty: 'hard' as const
+          }
+        ],
+        reading: [
+          {
+            question: 'Dalam teks akademik, "構造" paling tepat diartikan sebagai?',
+            options: ['Struktur', 'Bangunan', 'Komposisi', 'Bentuk'],
+            correctAnswer: 'Struktur',
+            explanation: '"構造" (kouzou) dalam konteks akademik berarti struktur atau susunan sistematis.',
+            topic: 'Terminologi Akademik',
+            difficulty: 'hard' as const
+          }
+        ]
+      }
+    };
+
+    const questions: JLPTQuestion[] = [];
+    const levelBank = questionBank[level as keyof typeof questionBank];
+    
+    if (!levelBank) {
+      // Fallback to N5 if level not found
+      const fallbackBank = questionBank.N5;
+      const allQuestions = Object.values(fallbackBank).flat();
+      for (let i = 0; i < Math.min(count, allQuestions.length); i++) {
+        const q = allQuestions[i];
+        questions.push({
+          id: (i + 1).toString(),
+          question: q.question,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          explanation: q.explanation,
+          type: 'grammar',
+          difficulty: q.difficulty,
+          topic: q.topic,
+          source: `JLPT ${level} Fallback`
+        });
+      }
+      return questions;
+    }
+
+    // Generate questions based on type selection
+    for (let i = 0; i < count; i++) {
+      let questionType: string;
+      
+      if (type === 'mixed') {
+        const types = ['grammar', 'vocabulary', 'kanji', 'reading'];
+        questionType = types[Math.floor(Math.random() * types.length)];
+      } else {
+        questionType = type;
+      }
+
+      const typeBank = levelBank[questionType as keyof typeof levelBank];
+      
+      if (typeBank && typeBank.length > 0) {
+        const randomIndex = Math.floor(Math.random() * typeBank.length);
+        const selectedQ = typeBank[randomIndex];
+        
+        questions.push({
+          id: (i + 1).toString(),
+          question: selectedQ.question,
+          options: selectedQ.options,
+          correctAnswer: selectedQ.correctAnswer,
+          explanation: selectedQ.explanation,
+          type: questionType as any,
+          difficulty: selectedQ.difficulty,
+          topic: selectedQ.topic,
+          source: `JLPT ${level} ${questionType.charAt(0).toUpperCase() + questionType.slice(1)}`
+        });
+      } else {
+        // Fallback to grammar if type not available
+        const grammarBank = levelBank.grammar;
+        if (grammarBank && grammarBank.length > 0) {
+          const randomIndex = Math.floor(Math.random() * grammarBank.length);
+          const selectedQ = grammarBank[randomIndex];
+          
+          questions.push({
+            id: (i + 1).toString(),
+            question: selectedQ.question,
+            options: selectedQ.options,
+            correctAnswer: selectedQ.correctAnswer,
+            explanation: selectedQ.explanation,
+            type: 'grammar',
+            difficulty: selectedQ.difficulty,
+            topic: selectedQ.topic,
+            source: `JLPT ${level} Grammar`
+          });
+        }
+      }
+    }
+
+    return questions;
+  };
+
   const generateJLPTQuiz = async () => {
     setGeneratingQuiz(true);
     try {
@@ -128,11 +475,71 @@ const JLPTAIPage: React.FC = () => {
       const typeLabel = questionTypes.find(t => t.value === selectedType)?.label || 'Campuran';
       const levelInfo = jlptLevels.find(l => l.value === selectedLevel);
       
-      const prompt = `[ID: ${randomSeed}-${timestamp}] Buatkan ${questionCount} soal latihan JLPT level ${selectedLevel} BARU dan BERVARIASI dengan kriteria berikut:
-- Tipe soal: ${selectedType === 'mixed' ? 'campuran grammar, vocabulary, kanji, dan reading' : typeLabel}
-- Level: ${selectedLevel} (${levelInfo?.description})
+      const prompt = `[ID: ${randomSeed}-${timestamp}] Buatkan ${questionCount} soal latihan JLPT level ${selectedLevel} BARU dan BERVARIASI dengan kriteria SPESIFIK berikut:
+
+KRITERIA WAJIB:
+- Tipe soal: ${selectedType === 'mixed' ? 'CAMPURAN (25% grammar, 25% vocabulary, 25% kanji, 25% reading)' : typeLabel.toUpperCase()}
+- Level JLPT: ${selectedLevel} (${levelInfo?.description})
 - Bahasa Indonesia untuk pertanyaan dan pilihan jawaban
 - Sesuai dengan standar JLPT yang sesungguhnya
+
+ATURAN SPESIFIK BERDASARKAN PILIHAN USER:
+${selectedType === 'grammar' ? `
+- HANYA soal tata bahasa JLPT ${selectedLevel}
+- Fokus pada pola grammar yang sering muncul di JLPT ${selectedLevel}
+- Mencakup bentuk kata kerja, partikel, ekspresi, dan konjungsi
+- Soal harus menguji pemahaman konsep, bukan hafalan
+` : ''}
+${selectedType === 'vocabulary' ? `
+- HANYA soal kosakata JLPT ${selectedLevel}
+- Fokus pada kata-kata yang sering muncul di JLPT ${selectedLevel}
+- Mencakup sinonim, antonim, dan penggunaan dalam konteks
+- Soal harus menguji pemahaman makna dan penggunaan praktis
+` : ''}
+${selectedType === 'kanji' ? `
+- HANYA soal kanji JLPT ${selectedLevel}
+- Fokus pada kanji yang sering muncul di JLPT ${selectedLevel}
+- Mencakup bacaan (onyomi/kunyomi), arti, dan penggunaan
+- Soal harus menguji pemahaman kanji dalam konteks kalimat
+` : ''}
+${selectedType === 'reading' ? `
+- HANYA soal pemahaman bacaan JLPT ${selectedLevel}
+- Fokus pada bacaan hiragana, katakana, dan kanji campuran
+- Mencakup pemahaman makna, konteks, dan nuansa
+- Soal harus menguji kemampuan membaca dan memahami teks
+` : ''}
+
+TINGKAT KESULITAN BERDASARKAN LEVEL:
+${selectedLevel === 'N5' ? `
+- Soal dasar dengan materi fundamental
+- Kanji: 100 kanji dasar, angka, hari, bulan
+- Vocabulary: 800 kata dasar sehari-hari
+- Grammar: です/である, ます, partikel dasar (は, が, を, に, で)
+` : ''}
+${selectedLevel === 'N4' ? `
+- Soal menengah bawah dengan materi praktis
+- Kanji: 300 kanji, compound kanji sederhana
+- Vocabulary: 1500 kata dengan nuansa emosi dan aktivitas
+- Grammar: て-form, た-form, conditional, comparative
+` : ''}
+${selectedLevel === 'N3' ? `
+- Soal menengah dengan materi kompleks
+- Kanji: 650 kanji, compound kanji yang lebih kompleks
+- Vocabulary: 3750 kata dengan istilah teknis dan abstrak
+- Grammar: causative, passive, keigo dasar, ekspresi kompleks
+` : ''}
+${selectedLevel === 'N2' ? `
+- Soal menengah atas dengan materi lanjutan
+- Kanji: 1000 kanji, compound kanji lanjutan
+- Vocabulary: 6000 kata dengan nuansa formal dan teknis
+- Grammar: keigo lanjutan, ekspresi formal, struktur kompleks
+` : ''}
+${selectedLevel === 'N1' ? `
+- Soal lanjutan dengan materi akademik dan profesional
+- Kanji: 2000+ kanji, compound kanji yang rumit
+- Vocabulary: 10000+ kata dengan terminologi khusus
+- Grammar: ekspresi sangat formal, struktur akademik, nuansa halus
+` : ''}
 
 PENTING: Buat soal yang BERBEDA dan UNIK. Gunakan:
 - Materi JLPT yang beragam dan tidak repetitif
@@ -140,40 +547,35 @@ PENTING: Buat soal yang BERBEDA dan UNIK. Gunakan:
 - Topik dan konteks yang berbeda-beda
 - Tingkat kesulitan yang sesuai level ${selectedLevel}
 - JANGAN mengulang soal yang sama atau mirip dengan generator sebelumnya
+- Gunakan randomisasi topik, konteks, dan pendekatan soal
 
 Format jawaban dalam JSON dengan struktur:
 {
   "questions": [
     {
       "id": "1",
-      "question": "Pertanyaan dalam bahasa Indonesia",
+      "question": "Pertanyaan dalam bahasa Indonesia yang SPESIFIK sesuai tipe dan level",
       "options": ["pilihan1", "pilihan2", "pilihan3", "pilihan4"],
       "correctAnswer": "jawaban_yang_benar",
-      "explanation": "Penjelasan mengapa jawaban ini benar",
-      "type": "grammar/vocabulary/kanji/reading/listening",
-      "difficulty": "easy/medium/hard",
-      "topic": "topik_soal",
-      "source": "referensi_atau_buku"
+      "explanation": "Penjelasan detail mengapa jawaban ini benar dengan referensi JLPT",
+      "type": "${selectedType === 'mixed' ? 'grammar/vocabulary/kanji/reading sesuai proporsi' : selectedType}",
+      "difficulty": "${selectedLevel === 'N5' ? 'easy' : selectedLevel === 'N4' ? 'medium' : 'hard'}",
+      "topic": "topik_soal_spesifik",
+      "source": "JLPT ${selectedLevel} Official/Reference"
     }
   ]
 }
 
 Pastikan:
-1. Soal BERVARIASI dan sesuai level ${selectedLevel}
-2. Tidak mengulang pola atau konten yang sama
-3. Mencakup berbagai aspek JLPT ${selectedLevel}
-4. Tingkat kesulitan konsisten dengan level
-5. Penjelasan yang edukatif dan membantu
-6. KREATIVITAS tinggi dalam pembuatan soal
-7. Menggunakan materi autentik JLPT
-
-Pastikan:
-1. Soal sesuai dengan level JLPT yang dipilih
-2. Pilihan jawaban realistis dan menantang
-3. Penjelasan yang jelas dan edukatif
-4. Bahasa Indonesia yang baik dan benar
-5. Tingkat kesulitan yang sesuai
-6. Topik yang relevan dengan kurikulum JLPT`;
+1. Soal SESUAI PERSIS dengan level ${selectedLevel} dan tipe ${selectedType}
+2. Tidak mengulang pola atau konten yang sama dalam satu set
+3. Mencakup berbagai aspek JLPT ${selectedLevel} yang autentik
+4. Tingkat kesulitan KONSISTEN dengan level yang dipilih
+5. Penjelasan yang edukatif dan membantu persiapan JLPT
+6. KREATIVITAS tinggi dalam pembuatan soal yang bervariasi
+7. Menggunakan materi autentik yang sesuai kurikulum JLPT ${selectedLevel}
+8. Pilihan jawaban yang realistis dan menantang sesuai level
+9. Konteks yang relevan dengan penggunaan bahasa Jepang nyata`;
 
       const response = await azureOpenAI.getChatResponse([
         { role: 'user', content: prompt }
@@ -202,29 +604,21 @@ Pastikan:
         setShowSettings(false);
       } catch (parseError) {
         console.error('Error parsing quiz data:', parseError);
-        // Fallback dengan soal contoh
+        console.log('Raw AI response:', response);
+        
+        // Generate fallback quiz that respects user selections
+        const fallbackQuestions = generateFallbackQuestions(selectedLevel, selectedType, questionCount);
+        
         const fallbackSession: JLPTSession = {
           id: Date.now().toString(),
           level: selectedLevel,
-          questions: [
-            {
-              id: '1',
-              question: 'Manakah cara yang benar untuk mengatakan "Saya adalah siswa" dalam bahasa Jepang?',
-              options: ['私は学生です', '私は先生です', '私は医者です', '私は会社員です'],
-              correctAnswer: '私は学生です',
-              explanation: 'がくせい (gakusei) berarti siswa, sedangkan です (desu) adalah kopula yang sopan.',
-              type: 'grammar',
-              difficulty: 'easy',
-              topic: 'Pengenalan Diri',
-              source: 'JLPT N5 Dasar'
-            }
-          ],
+          questions: fallbackQuestions,
           currentQuestion: 0,
           userAnswers: {},
           score: 0,
           timeStarted: new Date(),
           isCompleted: false,
-          totalQuestions: 1
+          totalQuestions: fallbackQuestions.length
         };
         setCurrentSession(fallbackSession);
         setTimeElapsed(0);

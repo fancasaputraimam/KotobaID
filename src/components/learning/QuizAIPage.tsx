@@ -131,10 +131,44 @@ const QuizAIPage: React.FC = () => {
       const randomSeed = Math.floor(Math.random() * 10000);
       const timestamp = Date.now();
       
-      const prompt = `[ID: ${randomSeed}-${timestamp}] Buatkan ${questionCount} soal kuis bahasa Jepang BARU dan UNIK dengan kriteria berikut:
-- Tipe: ${quizType === 'mixed' ? 'campuran kanji, kosakata, dan tata bahasa' : quizType}
-- Tingkat kesulitan: ${difficulty === 'mixed' ? 'campuran mudah, sedang, dan sulit' : difficulty}
-- Level JLPT: ${jlptLevel === 'mixed' ? 'campuran N5-N1' : jlptLevel}
+      const prompt = `[ID: ${randomSeed}-${timestamp}] Buatkan ${questionCount} soal kuis bahasa Jepang BARU dan UNIK dengan kriteria SPESIFIK berikut:
+
+KRITERIA WAJIB:
+- Tipe soal: ${quizType === 'mixed' ? 'CAMPURAN (40% kanji, 30% kosakata, 30% tata bahasa)' : quizType.toUpperCase()}
+- Tingkat kesulitan: ${difficulty === 'mixed' ? 'CAMPURAN (mudah, sedang, sulit)' : difficulty.toUpperCase()}
+- Level JLPT: ${jlptLevel === 'mixed' ? 'CAMPURAN (N5-N1)' : jlptLevel.toUpperCase()}
+
+ATURAN SPESIFIK BERDASARKAN PILIHAN USER:
+${quizType === 'kanji' ? `
+- HANYA soal kanji (arti, bacaan, penggunaan)
+- Gunakan kanji sesuai level ${jlptLevel}
+- Fokus pada kanji yang sering digunakan
+` : ''}
+${quizType === 'vocabulary' ? `
+- HANYA soal kosakata (arti, penggunaan, sinonim)
+- Gunakan kosakata sesuai level ${jlptLevel}
+- Fokus pada kata-kata praktis sehari-hari
+` : ''}
+${quizType === 'grammar' ? `
+- HANYA soal tata bahasa (pola, fungsi, penggunaan)
+- Gunakan grammar sesuai level ${jlptLevel}
+- Fokus pada pola grammar yang sering digunakan
+` : ''}
+${difficulty === 'easy' ? `
+- Soal mudah dengan materi dasar
+- Pilihan jawaban yang jelas dan tidak membingungkan
+- Penjelasan sederhana dan mudah dipahami
+` : ''}
+${difficulty === 'medium' ? `
+- Soal sedang dengan materi menengah
+- Pilihan jawaban yang membutuhkan pemikiran
+- Penjelasan yang cukup detail
+` : ''}
+${difficulty === 'hard' ? `
+- Soal sulit dengan materi lanjutan
+- Pilihan jawaban yang menantang
+- Penjelasan yang komprehensif
+` : ''}
 
 PENTING: Buat soal yang BERBEDA dari sebelumnya. Gunakan variasi:
 - Kanji yang berbeda-beda
@@ -148,33 +182,41 @@ Format jawaban dalam JSON dengan struktur:
   "questions": [
     {
       "id": "1",
-      "type": "kanji/vocabulary/grammar/reading/listening",
-      "question": "Pertanyaan dalam bahasa Indonesia",
+      "type": "${quizType === 'mixed' ? 'kanji/vocabulary/grammar sesuai proporsi' : quizType}",
+      "question": "Pertanyaan dalam bahasa Indonesia yang SPESIFIK sesuai tipe",
       "options": ["pilihan1", "pilihan2", "pilihan3", "pilihan4"],
       "correct": "jawaban_yang_benar",
       "explanation": "Penjelasan detail mengapa jawaban ini benar",
-      "difficulty": "easy/medium/hard",
-      "category": "kategori_soal",
-      "source": "sumber_referensi"
+      "difficulty": "${difficulty === 'mixed' ? 'easy/medium/hard sesuai proporsi' : difficulty}",
+      "category": "kategori_soal_spesifik",
+      "source": "${jlptLevel === 'mixed' ? 'N5/N4/N3/N2/N1 sesuai proporsi' : jlptLevel}"
     }
   ]
 }
 
 Pastikan:
 1. Semua pertanyaan dan pilihan dalam bahasa Indonesia
-2. Soal BERVARIASI dan BERBEDA dari generator sebelumnya
-3. Gunakan kanji/kosakata/grammar yang BERAGAM
+2. Soal SESUAI PERSIS dengan pilihan user (tipe: ${quizType}, kesulitan: ${difficulty}, level: ${jlptLevel})
+3. Gunakan materi yang sesuai dengan level yang diminta
 4. Penjelasan yang jelas dan edukatif
-5. Tingkat kesulitan sesuai permintaan
+5. Tingkat kesulitan KONSISTEN dengan pilihan user
 6. Jawaban yang akurat dan terpercaya
-7. TIDAK mengulang soal yang sama`;
+7. TIDAK mengulang soal yang sama
+8. Jika mixed, buat proporsi yang seimbang`;
 
       const response = await azureOpenAI.getChatResponse([
         { role: 'user', content: prompt }
       ]);
 
       try {
+        console.log('AI Response received:', response);
         const quizData = JSON.parse(response);
+        console.log('Quiz data parsed successfully:', quizData);
+        
+        if (!quizData.questions || !Array.isArray(quizData.questions)) {
+          throw new Error('Invalid quiz format: missing questions array');
+        }
+        
         const newSession: QuizSession = {
           id: Date.now().toString(),
           questions: quizData.questions,
@@ -185,6 +227,7 @@ Pastikan:
           isCompleted: false
         };
         
+        console.log('Quiz session created with', quizData.questions.length, 'questions');
         setQuizSession(newSession);
         setTimeElapsed(0);
         setIsTimerActive(true);
@@ -195,29 +238,183 @@ Pastikan:
       } catch (parseError) {
         console.error('Error parsing quiz data:', parseError);
         console.log('Raw response:', response);
-        // Generate random fallback quiz
-        const kanjiSet = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '山', '川', '月', '日', '水', '火', '木', '金', '土', '空', '雨', '風', '雪', '花'];
-        const randomKanji = kanjiSet[Math.floor(Math.random() * kanjiSet.length)];
-        
+        // Generate fallback quiz that respects user selections
         const fallbackQuestions = [];
-        for (let i = 0; i < Math.min(questionCount, 5); i++) {
-          const randomKanjiForQuestion = kanjiSet[Math.floor(Math.random() * kanjiSet.length)];
-          fallbackQuestions.push({
-            id: (i + 1).toString(),
-            type: 'kanji' as const,
-            question: `Apa arti dari kanji ${randomKanjiForQuestion}?`,
-            options: [
-              randomKanjiForQuestion === '山' ? 'Gunung' : 'Pilihan A',
-              randomKanjiForQuestion === '川' ? 'Sungai' : 'Pilihan B', 
-              randomKanjiForQuestion === '水' ? 'Air' : 'Pilihan C',
-              'Pilihan D'
-            ].sort(() => Math.random() - 0.5),
-            correct: randomKanjiForQuestion === '山' ? 'Gunung' : randomKanjiForQuestion === '川' ? 'Sungai' : 'Air',
-            explanation: `Kanji ${randomKanjiForQuestion} memiliki arti dan penggunaan khusus dalam bahasa Jepang.`,
-            difficulty: 'easy' as const,
-            category: 'Kanji Dasar',
-            source: 'JLPT N5'
-          });
+        
+        // Create questions based on user selections
+        for (let i = 0; i < questionCount; i++) {
+          let question: QuizQuestion;
+          
+          if (quizType === 'kanji' || (quizType === 'mixed' && Math.random() < 0.4)) {
+            // Kanji questions based on JLPT level
+            const kanjiByLevel = {
+              N5: [
+                { kanji: '一', meaning: 'Satu', reading: 'いち' },
+                { kanji: '二', meaning: 'Dua', reading: 'に' },
+                { kanji: '三', meaning: 'Tiga', reading: 'さん' },
+                { kanji: '四', meaning: 'Empat', reading: 'よん' },
+                { kanji: '五', meaning: 'Lima', reading: 'ご' },
+                { kanji: '六', meaning: 'Enam', reading: 'ろく' },
+                { kanji: '七', meaning: 'Tujuh', reading: 'なな' },
+                { kanji: '八', meaning: 'Delapan', reading: 'はち' },
+                { kanji: '九', meaning: 'Sembilan', reading: 'きゅう' },
+                { kanji: '十', meaning: 'Sepuluh', reading: 'じゅう' },
+                { kanji: '山', meaning: 'Gunung', reading: 'やま' },
+                { kanji: '川', meaning: 'Sungai', reading: 'かわ' },
+                { kanji: '月', meaning: 'Bulan', reading: 'つき' },
+                { kanji: '日', meaning: 'Hari/Matahari', reading: 'ひ' },
+                { kanji: '水', meaning: 'Air', reading: 'みず' },
+                { kanji: '火', meaning: 'Api', reading: 'ひ' },
+                { kanji: '木', meaning: 'Pohon/Kayu', reading: 'き' },
+                { kanji: '金', meaning: 'Emas/Uang', reading: 'きん' },
+                { kanji: '土', meaning: 'Tanah', reading: 'つち' },
+                { kanji: '空', meaning: 'Langit/Kosong', reading: 'そら' }
+              ],
+              N4: [
+                { kanji: '今', meaning: 'Sekarang', reading: 'いま' },
+                { kanji: '時', meaning: 'Waktu', reading: 'じ' },
+                { kanji: '年', meaning: 'Tahun', reading: 'ねん' },
+                { kanji: '前', meaning: 'Depan', reading: 'まえ' },
+                { kanji: '後', meaning: 'Belakang', reading: 'あと' },
+                { kanji: '中', meaning: 'Dalam', reading: 'なか' },
+                { kanji: '外', meaning: 'Luar', reading: 'そと' },
+                { kanji: '上', meaning: 'Atas', reading: 'うえ' },
+                { kanji: '下', meaning: 'Bawah', reading: 'した' },
+                { kanji: '左', meaning: 'Kiri', reading: 'ひだり' }
+              ],
+              N3: [
+                { kanji: '経', meaning: 'Melalui', reading: 'けい' },
+                { kanji: '験', meaning: 'Percobaan', reading: 'けん' },
+                { kanji: '説', meaning: 'Penjelasan', reading: 'せつ' },
+                { kanji: '論', meaning: 'Teori', reading: 'ろん' },
+                { kanji: '制', meaning: 'Sistem', reading: 'せい' },
+                { kanji: '政', meaning: 'Politik', reading: 'せい' },
+                { kanji: '治', meaning: 'Pemerintahan', reading: 'じ' },
+                { kanji: '法', meaning: 'Hukum', reading: 'ほう' },
+                { kanji: '権', meaning: 'Hak', reading: 'けん' },
+                { kanji: '利', meaning: 'Keuntungan', reading: 'り' }
+              ],
+              N2: [
+                { kanji: '責', meaning: 'Tanggung jawab', reading: 'せき' },
+                { kanji: '任', meaning: 'Tugas', reading: 'にん' },
+                { kanji: '務', meaning: 'Kewajiban', reading: 'む' },
+                { kanji: '職', meaning: 'Pekerjaan', reading: 'しょく' },
+                { kanji: '労', meaning: 'Kerja keras', reading: 'ろう' },
+                { kanji: '働', meaning: 'Bekerja', reading: 'どう' },
+                { kanji: '給', meaning: 'Gaji', reading: 'きゅう' },
+                { kanji: '与', meaning: 'Memberikan', reading: 'よ' },
+                { kanji: '受', meaning: 'Menerima', reading: 'じゅ' },
+                { kanji: '取', meaning: 'Mengambil', reading: 'しゅ' }
+              ],
+              N1: [
+                { kanji: '概', meaning: 'Secara umum', reading: 'がい' },
+                { kanji: '略', meaning: 'Singkatan', reading: 'りゃく' },
+                { kanji: '傾', meaning: 'Kecenderungan', reading: 'けい' },
+                { kanji: '向', meaning: 'Arah', reading: 'こう' },
+                { kanji: '構', meaning: 'Struktur', reading: 'こう' },
+                { kanji: '造', meaning: 'Pembangunan', reading: 'ぞう' },
+                { kanji: '築', meaning: 'Membangun', reading: 'ちく' },
+                { kanji: '設', meaning: 'Mendirikan', reading: 'せつ' },
+                { kanji: '備', meaning: 'Persiapan', reading: 'び' },
+                { kanji: '装', meaning: 'Peralatan', reading: 'そう' }
+              ]
+            };
+            
+            const currentLevel = jlptLevel === 'mixed' ? 
+              ['N5', 'N4', 'N3', 'N2', 'N1'][Math.floor(Math.random() * 5)] : 
+              jlptLevel;
+            
+            const kanjiData = kanjiByLevel[currentLevel as keyof typeof kanjiByLevel] || kanjiByLevel.N5;
+            const selectedKanji = kanjiData[Math.floor(Math.random() * kanjiData.length)];
+            
+            const wrongOptions = kanjiData
+              .filter(k => k.kanji !== selectedKanji.kanji)
+              .map(k => k.meaning)
+              .sort(() => Math.random() - 0.5)
+              .slice(0, 3);
+            
+            const allOptions = [selectedKanji.meaning, ...wrongOptions].sort(() => Math.random() - 0.5);
+            
+            question = {
+              id: (i + 1).toString(),
+              type: 'kanji',
+              question: `Apa arti dari kanji ${selectedKanji.kanji}?`,
+              options: allOptions,
+              correct: selectedKanji.meaning,
+              explanation: `Kanji ${selectedKanji.kanji} dibaca "${selectedKanji.reading}" dan memiliki arti "${selectedKanji.meaning}". Kanji ini termasuk dalam level ${currentLevel}.`,
+              difficulty: difficulty === 'mixed' ? 
+                ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)] as any : 
+                difficulty,
+              category: `Kanji ${currentLevel}`,
+              source: currentLevel
+            };
+          } else if (quizType === 'vocabulary' || (quizType === 'mixed' && Math.random() < 0.3)) {
+            // Vocabulary questions
+            const vocabData = [
+              { word: 'がくせい', meaning: 'Siswa', reading: 'がくせい' },
+              { word: 'せんせい', meaning: 'Guru', reading: 'せんせい' },
+              { word: 'ともだち', meaning: 'Teman', reading: 'ともだち' },
+              { word: 'かぞく', meaning: 'Keluarga', reading: 'かぞく' },
+              { word: 'りょうしん', meaning: 'Orang tua', reading: 'りょうしん' }
+            ];
+            
+            const selectedVocab = vocabData[Math.floor(Math.random() * vocabData.length)];
+            const wrongOptions = vocabData
+              .filter(v => v.word !== selectedVocab.word)
+              .map(v => v.meaning)
+              .sort(() => Math.random() - 0.5)
+              .slice(0, 3);
+            
+            const allOptions = [selectedVocab.meaning, ...wrongOptions].sort(() => Math.random() - 0.5);
+            
+            question = {
+              id: (i + 1).toString(),
+              type: 'vocabulary',
+              question: `Apa arti dari "${selectedVocab.word}"?`,
+              options: allOptions,
+              correct: selectedVocab.meaning,
+              explanation: `"${selectedVocab.word}" berarti "${selectedVocab.meaning}" dalam bahasa Indonesia.`,
+              difficulty: difficulty === 'mixed' ? 
+                ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)] as any : 
+                difficulty,
+              category: 'Kosakata',
+              source: jlptLevel === 'mixed' ? 'N5' : jlptLevel
+            };
+          } else {
+            // Grammar questions
+            const grammarData = [
+              { pattern: 'です', meaning: 'adalah', example: 'わたしは がくせい です' },
+              { pattern: 'じゃありません', meaning: 'bukan', example: 'わたしは せんせい じゃありません' },
+              { pattern: 'ます', meaning: 'bentuk sopan verb', example: 'わたしは たべます' },
+              { pattern: 'ません', meaning: 'tidak (bentuk sopan)', example: 'わたしは たべません' },
+              { pattern: 'が好きです', meaning: 'suka', example: 'わたしは すしが好きです' }
+            ];
+            
+            const selectedGrammar = grammarData[Math.floor(Math.random() * grammarData.length)];
+            const wrongOptions = grammarData
+              .filter(g => g.pattern !== selectedGrammar.pattern)
+              .map(g => g.meaning)
+              .sort(() => Math.random() - 0.5)
+              .slice(0, 3);
+            
+            const allOptions = [selectedGrammar.meaning, ...wrongOptions].sort(() => Math.random() - 0.5);
+            
+            question = {
+              id: (i + 1).toString(),
+              type: 'grammar',
+              question: `Apa fungsi dari pola tata bahasa "${selectedGrammar.pattern}"?`,
+              options: allOptions,
+              correct: selectedGrammar.meaning,
+              explanation: `Pola "${selectedGrammar.pattern}" digunakan untuk menyatakan "${selectedGrammar.meaning}". Contoh: ${selectedGrammar.example}`,
+              difficulty: difficulty === 'mixed' ? 
+                ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)] as any : 
+                difficulty,
+              category: 'Tata Bahasa',
+              source: jlptLevel === 'mixed' ? 'N5' : jlptLevel
+            };
+          }
+          
+          fallbackQuestions.push(question);
         }
         
         const fallbackQuiz: QuizSession = {

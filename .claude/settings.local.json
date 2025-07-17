@@ -4,7 +4,8 @@
       "Bash(find:*)",
       "mcp__ide__getDiagnostics",
       "Bash(wc:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)"
     ],
     "deny": []
   }

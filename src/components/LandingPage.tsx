@@ -541,7 +541,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
           
           <div className="border-t border-gray-800 pt-8 text-center">
             <div className="text-gray-400 text-sm mb-4">
-              <p>&copy; 2024 KotobaID. Dibuat dengan ❤️ di Indonesia. Semua hak dilindungi.</p>
+              <p>&copy; 2025 KotobaID. Dibuat dengan ❤️ oleh Imam Fanca di Indonesia. Semua hak dilindungi.</p>
             </div>
             <div className="flex flex-wrap justify-center space-x-6">
               <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">Kebijakan Privasi</a>
