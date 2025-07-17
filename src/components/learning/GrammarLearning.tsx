@@ -76,7 +76,7 @@ const GrammarLearning: React.FC = () => {
 
   const loadChapters = async () => {
     try {
-      const chapterData = await firestoreService.getChapters();
+      const chapterData = await firestoreService.getAllChapters();
       setChapters(chapterData);
     } catch (error) {
       console.error('Error loading chapters:', error);
@@ -114,7 +114,7 @@ Jawab dalam bahasa Indonesia dengan detail dan mudah dipahami.`;
     const matchesSearch = grammar.pattern.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          grammar.meaning.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDifficulty = difficultyFilter === 'all' || grammar.difficulty === difficultyFilter;
-    const matchesChapter = selectedChapter === '' || grammar.chapter === selectedChapter;
+    const matchesChapter = selectedChapter === '' || grammar.chapter.toString() === selectedChapter;
     
     return matchesSearch && matchesDifficulty && matchesChapter;
   });
@@ -200,7 +200,7 @@ Jawab dalam bahasa Indonesia dengan detail dan mudah dipahami.`;
                 >
                   <option value="">All Chapters</option>
                   {chapters.map(chapter => (
-                    <option key={chapter.id} value={chapter.id}>{chapter.name}</option>
+                    <option key={chapter.id} value={chapter.number.toString()}>{chapter.title}</option>
                   ))}
                 </select>
               </div>
@@ -288,9 +288,9 @@ Jawab dalam bahasa Indonesia dengan detail dan mudah dipahami.`;
                   <div className="space-y-4">
                     {selectedGrammar.examples.map((example, index) => (
                       <div key={index} className="bg-blue-50 p-4 rounded-lg">
-                        <p className="text-lg font-medium text-gray-900 mb-2">{example.japanese}</p>
-                        <p className="text-gray-600 mb-2">{example.romaji}</p>
-                        <p className="text-blue-800">{example.english}</p>
+                        <p className="text-lg font-medium text-gray-900 mb-2">{example.sentence}</p>
+                        <p className="text-gray-600 mb-2">{example.reading}</p>
+                        <p className="text-blue-800">{example.meaning}</p>
                         {example.audioUrl && (
                           <div className="mt-2">
                             <AudioPlayer audioUrl={example.audioUrl} />

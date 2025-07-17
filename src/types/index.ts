@@ -53,6 +53,10 @@ export interface VocabularyExample {
 export interface Grammar {
   id: string;
   title: string;
+  pattern: string;
+  meaning: string;
+  usage: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
   chapter: number;
   structure: string;
   explanation: string;
