@@ -1,205 +1,734 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { 
+  Brain, 
+  Target, 
+  Award, 
+  Clock, 
+  CheckCircle, 
+  XCircle, 
+  RotateCcw, 
+  Play, 
+  Pause, 
+  Star, 
+  TrendingUp, 
+  BookOpen, 
+  Globe, 
+  Volume2, 
+  Lightbulb, 
+  Zap, 
+  Trophy, 
+  Medal, 
+  Timer, 
+  Settings, 
+  RefreshCw, 
+  ChevronRight, 
+  ChevronLeft, 
+  Eye, 
+  EyeOff, 
+  Shuffle, 
+  Home, 
+  BarChart3, 
+  FileText, 
+  Users, 
+  Calendar, 
+  Filter, 
+  Download, 
+  Share2, 
+  BookmarkPlus, 
+  Heart, 
+  MessageCircle, 
+  ThumbsUp, 
+  ThumbsDown, 
+  Flag, 
+  AlertCircle, 
+  Info, 
+  HelpCircle, 
+  Search, 
+  Plus, 
+  Minus, 
+  X 
+} from 'lucide-react';
 import { azureOpenAI } from '../../services/azureOpenAI';
 import LoadingSpinner from '../common/LoadingSpinner';
 
-type QuizItem = {
+interface QuizQuestion {
+  id: string;
+  type: 'kanji' | 'vocabulary' | 'grammar' | 'reading' | 'listening';
   question: string;
   options: string[];
-  answer: string;
-};
+  correct: string;
+  explanation: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  category: string;
+  source: string;
+}
 
-// Parsing sederhana: hanya terima JSON array valid
-const parseQuizJSON = (text: string): QuizItem[] | null => {
-  try {
-    // Ekstrak semua objek {...} di dalam array (meski array tidak lengkap)
-    const objects = text.match(/\{[^}]*\}/g);
-    if (objects && objects.length > 0) {
-      const valid: QuizItem[] = [];
-      for (const objStr of objects) {
-        try {
-          // Pastikan koma di akhir tidak mengganggu
-          const clean = objStr.replace(/,\s*$/, "");
-          const obj = JSON.parse(clean);
-          if (obj && obj.question && obj.options && obj.answer) {
-            valid.push(obj);
-          }
-        } catch {}
-      }
-      if (valid.length > 0) {
-        return valid.slice(0, 10); // maksimal 10 soal valid
-      }
-    }
-    // Fallback: coba parse langsung jika text valid JSON array
-    try {
-      const arr = JSON.parse(text);
-      if (Array.isArray(arr) && arr[0]?.question && arr[0]?.options && arr[0]?.answer) {
-        return arr.slice(0, 10);
-      }
-    } catch {}
-  } catch {}
-  return null;
-};
+interface QuizSession {
+  id: string;
+  questions: QuizQuestion[];
+  currentQuestion: number;
+  score: number;
+  timeStarted: Date;
+  timeEnded?: Date;
+  answers: { [key: string]: string };
+  isCompleted: boolean;
+}
 
 const QuizAIPage: React.FC = () => {
-  const [quizTopic, setQuizTopic] = useState('kanji');
-  const [quiz, setQuiz] = useState<QuizItem[] | null>(null);
-  const [quizRaw, setQuizRaw] = useState('');
-  const [quizLoading, setQuizLoading] = useState(false);
-  const [userAnswers, setUserAnswers] = useState<string[]>([]);
+  const [quizSession, setQuizSession] = useState<QuizSession | null>(null);
+  const [selectedAnswer, setSelectedAnswer] = useState<string>('');
   const [showResult, setShowResult] = useState(false);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [generatingQuiz, setGeneratingQuiz] = useState(false);
+  const [timeElapsed, setTimeElapsed] = useState(0);
+  const [isTimerActive, setIsTimerActive] = useState(false);
+  const [quizType, setQuizType] = useState<'mixed' | 'kanji' | 'vocabulary' | 'grammar'>('mixed');
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard' | 'mixed'>('mixed');
+  const [questionCount, setQuestionCount] = useState(10);
+  const [jlptLevel, setJlptLevel] = useState<'N5' | 'N4' | 'N3' | 'N2' | 'N1' | 'mixed'>('N5');
+  const [showSettings, setShowSettings] = useState(false);
+  const [aiExplanation, setAiExplanation] = useState('');
+  const [explanationLoading, setExplanationLoading] = useState(false);
 
-  const handleQuizAI = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setQuizLoading(true);
-    setQuiz(null);
-    setQuizRaw('');
-    setUserAnswers([]);
-    setShowResult(false);
+  const quizTypes = [
+    { value: 'mixed', label: 'Campuran', icon: Shuffle },
+    { value: 'kanji', label: 'Kanji', icon: BookOpen },
+    { value: 'vocabulary', label: 'Kosakata', icon: Globe },
+    { value: 'grammar', label: 'Tata Bahasa', icon: FileText }
+  ];
+
+  const difficulties = [
+    { value: 'easy', label: 'Mudah', color: 'bg-green-100 text-green-800' },
+    { value: 'medium', label: 'Sedang', color: 'bg-yellow-100 text-yellow-800' },
+    { value: 'hard', label: 'Sulit', color: 'bg-red-100 text-red-800' },
+    { value: 'mixed', label: 'Campuran', color: 'bg-blue-100 text-blue-800' }
+  ];
+
+  const jlptLevels = [
+    { value: 'N5', label: 'N5 (Pemula)', color: 'bg-green-100 text-green-800' },
+    { value: 'N4', label: 'N4 (Dasar)', color: 'bg-blue-100 text-blue-800' },
+    { value: 'N3', label: 'N3 (Menengah)', color: 'bg-yellow-100 text-yellow-800' },
+    { value: 'N2', label: 'N2 (Menengah Atas)', color: 'bg-orange-100 text-orange-800' },
+    { value: 'N1', label: 'N1 (Lanjutan)', color: 'bg-red-100 text-red-800' },
+    { value: 'mixed', label: 'Campuran', color: 'bg-purple-100 text-purple-800' }
+  ];
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isTimerActive && quizSession && !quizSession.isCompleted) {
+      interval = setInterval(() => {
+        setTimeElapsed(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isTimerActive, quizSession]);
+
+  const generateQuiz = async () => {
+    setGeneratingQuiz(true);
     try {
-      const jumlahSoal = 10;
-      const prompt = `Buatkan ${jumlahSoal} soal quiz pilihan ganda beserta jawabannya tentang ${quizTopic} bahasa Jepang. Jawab HANYA dengan JSON array: [{question, options, answer}]. Jangan tambahkan penjelasan apapun di luar array.`;
-      const res = await azureOpenAI.generateExplanation({ prompt, type: 'conversation' });
-      setQuizRaw(res.text);
-      const parsed = parseQuizJSON(res.text);
-      if (parsed) {
-        setQuiz(parsed);
-        setUserAnswers(Array(parsed.length).fill(''));
-      } else {
-        setQuiz(null);
+      const prompt = `Buatkan ${questionCount} soal kuis bahasa Jepang dengan kriteria berikut:
+- Tipe: ${quizType === 'mixed' ? 'campuran kanji, kosakata, dan tata bahasa' : quizType}
+- Tingkat kesulitan: ${difficulty === 'mixed' ? 'campuran mudah, sedang, dan sulit' : difficulty}
+- Level JLPT: ${jlptLevel === 'mixed' ? 'campuran N5-N1' : jlptLevel}
+
+Format jawaban dalam JSON dengan struktur:
+{
+  "questions": [
+    {
+      "id": "1",
+      "type": "kanji/vocabulary/grammar/reading/listening",
+      "question": "Pertanyaan dalam bahasa Indonesia",
+      "options": ["pilihan1", "pilihan2", "pilihan3", "pilihan4"],
+      "correct": "jawaban_yang_benar",
+      "explanation": "Penjelasan detail mengapa jawaban ini benar",
+      "difficulty": "easy/medium/hard",
+      "category": "kategori_soal",
+      "source": "sumber_referensi"
+    }
+  ]
+}
+
+Pastikan:
+1. Semua pertanyaan dan pilihan dalam bahasa Indonesia
+2. Soal bervariasi dan menantang
+3. Penjelasan yang jelas dan edukatif
+4. Tingkat kesulitan sesuai permintaan
+5. Jawaban yang akurat dan terpercaya`;
+
+      const response = await azureOpenAI.getChatResponse([
+        { role: 'user', content: prompt }
+      ]);
+
+      try {
+        const quizData = JSON.parse(response);
+        const newSession: QuizSession = {
+          id: Date.now().toString(),
+          questions: quizData.questions,
+          currentQuestion: 0,
+          score: 0,
+          timeStarted: new Date(),
+          answers: {},
+          isCompleted: false
+        };
+        
+        setQuizSession(newSession);
+        setTimeElapsed(0);
+        setIsTimerActive(true);
+        setSelectedAnswer('');
+        setShowResult(false);
+        setShowExplanation(false);
+        setShowSettings(false);
+      } catch (parseError) {
+        console.error('Error parsing quiz data:', parseError);
+        // Fallback dengan soal contoh
+        const fallbackQuiz: QuizSession = {
+          id: Date.now().toString(),
+          questions: [
+            {
+              id: '1',
+              type: 'kanji',
+              question: 'Apa arti dari kanji 山?',
+              options: ['Gunung', 'Laut', 'Sungai', 'Hutan'],
+              correct: 'Gunung',
+              explanation: 'Kanji 山 (yama/san) berarti gunung dalam bahasa Jepang.',
+              difficulty: 'easy',
+              category: 'Kanji Dasar',
+              source: 'JLPT N5'
+            }
+          ],
+          currentQuestion: 0,
+          score: 0,
+          timeStarted: new Date(),
+          answers: {},
+          isCompleted: false
+        };
+        setQuizSession(fallbackQuiz);
+        setTimeElapsed(0);
+        setIsTimerActive(true);
       }
-    } catch {
-      setQuiz(null);
-      setQuizRaw('Gagal mendapatkan quiz dari AI.');
+    } catch (error) {
+      console.error('Error generating quiz:', error);
+      alert('Terjadi kesalahan saat membuat kuis. Silakan coba lagi.');
     } finally {
-      setQuizLoading(false);
+      setGeneratingQuiz(false);
     }
   };
 
-  const handleSelect = (idx: number, value: string) => {
-    setUserAnswers(ans => ans.map((a, i) => (i === idx ? value : a)));
+  const handleAnswerSelect = (answer: string) => {
+    if (showResult) return;
+    setSelectedAnswer(answer);
   };
 
-  const handleFinish = () => {
+  const handleSubmitAnswer = () => {
+    if (!quizSession || !selectedAnswer) return;
+
+    const currentQ = quizSession.questions[quizSession.currentQuestion];
+    const isCorrect = selectedAnswer === currentQ.correct;
+    
+    const updatedAnswers = {
+      ...quizSession.answers,
+      [currentQ.id]: selectedAnswer
+    };
+
+    setQuizSession({
+      ...quizSession,
+      answers: updatedAnswers,
+      score: quizSession.score + (isCorrect ? 1 : 0)
+    });
+
     setShowResult(true);
+    setShowExplanation(true);
   };
 
-  const score = quiz && userAnswers.length === quiz.length
-    ? quiz.reduce((acc, q, i) => acc + (userAnswers[i] === q.answer ? 1 : 0), 0)
-    : 0;
+  const handleNextQuestion = () => {
+    if (!quizSession) return;
 
-  return (
-    <div className="max-w-2xl mx-auto py-8">
-      <h1 className="text-3xl font-extrabold mb-4 text-blue-700 text-center drop-shadow">Quiz Kanji AI</h1>
-      <p className="text-gray-600 mb-6 text-center text-lg">Latihan quiz kanji, grammar, JLPT, atau kosakata dengan AI. Pilih jawaban yang benar dan cek skor kamu!</p>
-      {/* Tombol dan dropdown buat quiz */}
-      <form onSubmit={handleQuizAI} className="flex items-center justify-center space-x-2 mb-6">
-        <select value={quizTopic} onChange={e => setQuizTopic(e.target.value)} className="border rounded px-2 py-1">
-          <option value="kanji">Kanji</option>
-          <option value="grammar">Grammar</option>
-          <option value="JLPT">JLPT</option>
-          <option value="kotoba">Kotoba</option>
-        </select>
-        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" disabled={quizLoading}>{quizLoading ? 'Membuat...' : 'Buat Quiz'}</button>
-      </form>
-      {quiz && (
-        <div className="w-full mb-6">
-          <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-500"
-              style={{ width: `${(userAnswers.filter(Boolean).length / quiz.length) * 100}%` }}
-            />
+    const nextQuestion = quizSession.currentQuestion + 1;
+    
+    if (nextQuestion >= quizSession.questions.length) {
+      // Quiz selesai
+      setQuizSession({
+        ...quizSession,
+        isCompleted: true,
+        timeEnded: new Date()
+      });
+      setIsTimerActive(false);
+    } else {
+      // Pertanyaan berikutnya
+      setQuizSession({
+        ...quizSession,
+        currentQuestion: nextQuestion
+      });
+      setSelectedAnswer('');
+      setShowResult(false);
+      setShowExplanation(false);
+    }
+  };
+
+  const handleRestartQuiz = () => {
+    setQuizSession(null);
+    setSelectedAnswer('');
+    setShowResult(false);
+    setShowExplanation(false);
+    setTimeElapsed(0);
+    setIsTimerActive(false);
+    setAiExplanation('');
+  };
+
+  const getDetailedExplanation = async (question: QuizQuestion) => {
+    setExplanationLoading(true);
+    try {
+      const prompt = `Berikan penjelasan detail untuk soal kuis bahasa Jepang berikut:
+
+Pertanyaan: ${question.question}
+Jawaban yang benar: ${question.correct}
+Tipe soal: ${question.type}
+Tingkat kesulitan: ${question.difficulty}
+
+Mohon berikan penjelasan yang mencakup:
+1. Mengapa jawaban ini benar
+2. Penjelasan konsep yang terkait
+3. Contoh penggunaan lain
+4. Tips untuk mengingat
+5. Kesalahan umum yang mungkin terjadi
+
+Gunakan bahasa Indonesia yang mudah dipahami.`;
+
+      const response = await azureOpenAI.getChatResponse([
+        { role: 'user', content: prompt }
+      ]);
+
+      setAiExplanation(response);
+    } catch (error) {
+      console.error('Error getting detailed explanation:', error);
+      setAiExplanation('Maaf, terjadi kesalahan saat mengambil penjelasan detail.');
+    } finally {
+      setExplanationLoading(false);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getScoreColor = (score: number, total: number) => {
+    const percentage = (score / total) * 100;
+    if (percentage >= 80) return 'text-green-600';
+    if (percentage >= 60) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const getScoreMessage = (score: number, total: number) => {
+    const percentage = (score / total) * 100;
+    if (percentage >= 90) return 'Sempurna! Anda menguasai materi dengan baik!';
+    if (percentage >= 80) return 'Bagus sekali! Teruskan belajar!';
+    if (percentage >= 70) return 'Lumayan baik! Masih ada ruang untuk perbaikan.';
+    if (percentage >= 60) return 'Cukup baik, tapi perlu lebih banyak latihan.';
+    return 'Perlu belajar lebih giat lagi. Jangan menyerah!';
+  };
+
+  // Render Settings Panel
+  const renderSettings = () => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">Pengaturan Kuis</h3>
+        <button
+          onClick={() => setShowSettings(!showSettings)}
+          className="p-2 text-gray-500 hover:text-gray-700"
+        >
+          <Settings className="h-5 w-5" />
+        </button>
+      </div>
+
+      {showSettings && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <div className="space-y-4">
+            {/* Quiz Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tipe Kuis</label>
+              <div className="grid grid-cols-2 gap-2">
+                {quizTypes.map(type => (
+                  <button
+                    key={type.value}
+                    onClick={() => setQuizType(type.value as any)}
+                    className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all ${
+                      quizType === type.value
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <type.icon className="h-4 w-4" />
+                    <span className="text-sm">{type.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Difficulty */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tingkat Kesulitan</label>
+              <div className="grid grid-cols-2 gap-2">
+                {difficulties.map(diff => (
+                  <button
+                    key={diff.value}
+                    onClick={() => setDifficulty(diff.value as any)}
+                    className={`px-3 py-2 rounded-lg font-medium transition-all ${
+                      difficulty === diff.value
+                        ? diff.color
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <span className="text-sm">{diff.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="text-right text-xs text-gray-500 mt-1">
-            {userAnswers.filter(Boolean).length} / {quiz.length} dijawab
+
+          <div className="space-y-4">
+            {/* JLPT Level */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Level JLPT</label>
+              <div className="grid grid-cols-3 gap-2">
+                {jlptLevels.map(level => (
+                  <button
+                    key={level.value}
+                    onClick={() => setJlptLevel(level.value as any)}
+                    className={`px-2 py-2 rounded-lg font-medium transition-all ${
+                      jlptLevel === level.value
+                        ? level.color
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <span className="text-xs">{level.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Question Count */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Jumlah Soal: {questionCount}
+              </label>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setQuestionCount(Math.max(5, questionCount - 5))}
+                  className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <input
+                  type="range"
+                  min="5"
+                  max="50"
+                  step="5"
+                  value={questionCount}
+                  onChange={(e) => setQuestionCount(Number(e.target.value))}
+                  className="flex-1"
+                />
+                <button
+                  onClick={() => setQuestionCount(Math.min(50, questionCount + 5))}
+                  className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
-      <div className="whitespace-pre-line text-sm bg-gray-50 rounded-xl p-6 min-h-[80px] shadow-md">
-        {quizLoading && <LoadingSpinner size="md" />}
-        {!quizLoading && quiz && (
-          <form onSubmit={e => { e.preventDefault(); handleFinish(); }}>
-            <div className="space-y-8">
-              {quiz.map((q, idx) => (
-                <div key={idx} className="bg-white rounded-2xl shadow-lg p-6 border border-blue-100 relative transition-transform hover:scale-[1.02]">
-                  <div className="absolute top-2 right-4 text-xs text-gray-400 font-semibold">Soal {idx + 1} / {quiz.length}</div>
-                  <div className="font-bold text-lg mb-4 text-blue-700 drop-shadow">{q.question}</div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {q.options.map(opt => {
-                      const isSelected = userAnswers[idx] === opt;
-                      const isCorrect = showResult && opt === q.answer;
-                      const isWrong = showResult && isSelected && opt !== q.answer;
-                      return (
-                        <label
-                          key={opt}
-                          className={`flex items-center px-4 py-2 rounded-lg border cursor-pointer transition-all
-                            ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'}
-                            ${isCorrect ? 'border-green-500 bg-green-50' : ''}
-                            ${isWrong ? 'border-red-500 bg-red-50' : ''}
-                            hover:border-blue-400 hover:bg-blue-100
-                          `}
-                        >
-                          <input
-                            type="radio"
-                            name={`q${idx}`}
-                            value={opt}
-                            checked={isSelected}
-                            onChange={() => handleSelect(idx, opt)}
-                            disabled={showResult}
-                            className="mr-3 accent-blue-600"
-                          />
-                          <span className="font-medium text-base">{opt}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                  {showResult && (
-                    <div className={`mt-3 font-semibold ${userAnswers[idx] === q.answer ? 'text-green-600' : 'text-red-600'}`}>
-                      {userAnswers[idx] === q.answer ? 'Benar!' : `Salah. Jawaban: ${q.answer}`}
-                    </div>
+
+      <div className="mt-6 flex justify-center">
+        <button
+          onClick={generateQuiz}
+          disabled={generatingQuiz}
+          className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50"
+        >
+          {generatingQuiz ? (
+            <>
+              <LoadingSpinner size="sm" />
+              <span>Membuat Kuis...</span>
+            </>
+          ) : (
+            <>
+              <Brain className="h-5 w-5" />
+              <span>Buat Kuis AI</span>
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+
+  // Render Quiz Question
+  const renderQuiz = () => {
+    if (!quizSession) return null;
+
+    const currentQuestion = quizSession.questions[quizSession.currentQuestion];
+    
+    return (
+      <div className="max-w-4xl mx-auto">
+        {/* Progress Bar */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-600">
+              Soal {quizSession.currentQuestion + 1} dari {quizSession.questions.length}
+            </span>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-1">
+                <Timer className="h-4 w-4 text-gray-500" />
+                <span className="text-sm text-gray-600">{formatTime(timeElapsed)}</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <Award className="h-4 w-4 text-yellow-500" />
+                <span className="text-sm font-medium">{quizSession.score} / {quizSession.currentQuestion + (showResult ? 1 : 0)}</span>
+              </div>
+            </div>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${((quizSession.currentQuestion + 1) / quizSession.questions.length) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Question Card */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 sm:p-8 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                currentQuestion.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
+                currentQuestion.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-red-100 text-red-800'
+              }`}>
+                {currentQuestion.difficulty === 'easy' ? 'Mudah' : 
+                 currentQuestion.difficulty === 'medium' ? 'Sedang' : 'Sulit'}
+              </span>
+              <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                {currentQuestion.type === 'kanji' ? 'Kanji' :
+                 currentQuestion.type === 'vocabulary' ? 'Kosakata' :
+                 currentQuestion.type === 'grammar' ? 'Tata Bahasa' :
+                 currentQuestion.type === 'reading' ? 'Membaca' : 'Mendengar'}
+              </span>
+            </div>
+            <button
+              onClick={() => getDetailedExplanation(currentQuestion)}
+              className="flex items-center space-x-1 text-purple-600 hover:text-purple-800"
+            >
+              <Brain className="h-4 w-4" />
+              <span className="text-sm">Penjelasan AI</span>
+            </button>
+          </div>
+
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              {currentQuestion.question}
+            </h3>
+            <p className="text-sm text-gray-600">
+              Kategori: {currentQuestion.category} | Sumber: {currentQuestion.source}
+            </p>
+          </div>
+
+          {/* Answer Options */}
+          <div className="grid grid-cols-1 gap-3 mb-6">
+            {currentQuestion.options.map((option, index) => (
+              <button
+                key={index}
+                onClick={() => handleAnswerSelect(option)}
+                disabled={showResult}
+                className={`p-4 text-left rounded-lg border-2 transition-all ${
+                  showResult
+                    ? option === currentQuestion.correct
+                      ? 'bg-green-100 border-green-500 text-green-800'
+                      : selectedAnswer === option
+                        ? 'bg-red-100 border-red-500 text-red-800'
+                        : 'bg-gray-50 border-gray-200 text-gray-500'
+                    : selectedAnswer === option
+                      ? 'bg-blue-100 border-blue-500 text-blue-800'
+                      : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50'
+                }`}
+              >
+                <div className="flex items-center space-x-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium">
+                    {String.fromCharCode(65 + index)}
+                  </span>
+                  <span className="flex-1">{option}</span>
+                  {showResult && option === currentQuestion.correct && (
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  )}
+                  {showResult && selectedAnswer === option && option !== currentQuestion.correct && (
+                    <XCircle className="h-5 w-5 text-red-600" />
                   )}
                 </div>
-              ))}
-            </div>
-            <div className="flex justify-center items-center mt-8">
-              {!showResult && (
-                <button
-                  type="submit"
-                  className="px-8 py-3 bg-gradient-to-r from-green-400 to-blue-600 text-white text-lg font-bold rounded-full shadow-lg hover:scale-105 transition-all disabled:opacity-50"
-                  disabled={userAnswers.some(ans => !ans)}
-                >
-                  Selesai & Lihat Skor
-                </button>
-              )}
-            </div>
-            {showResult && (
-              <div className="mt-8 flex flex-col items-center">
-                <div className="px-8 py-4 bg-blue-100 rounded-full shadow text-2xl font-extrabold text-blue-700 mb-2">
-                  Skor: {score} / {quiz.length}
-                </div>
-                <div className="text-green-700 font-semibold mb-2">Bagikan hasilmu ke teman dan terus berlatih!</div>
-                <div className="mt-4 text-sm text-gray-500 text-center border-t pt-4">
-                  Dukung pengembangan aplikasi ini via <span className="font-bold text-blue-700">Dana 085813601701</span>
-                </div>
-              </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-between">
+            <button
+              onClick={handleRestartQuiz}
+              className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+            >
+              <Home className="h-4 w-4" />
+              <span>Kembali</span>
+            </button>
+
+            {!showResult ? (
+              <button
+                onClick={handleSubmitAnswer}
+                disabled={!selectedAnswer}
+                className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                <CheckCircle className="h-4 w-4" />
+                <span>Jawab</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleNextQuestion}
+                className="flex items-center space-x-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                <span>
+                  {quizSession.currentQuestion + 1 >= quizSession.questions.length ? 'Selesai' : 'Soal Berikutnya'}
+                </span>
+                <ChevronRight className="h-4 w-4" />
+              </button>
             )}
-          </form>
-        )}
-        {!quizLoading && !quiz && quizRaw && (
-          <div className="text-red-600 whitespace-pre-wrap">
-            Quiz tidak dapat diproses.
-            <br />
-            <br />
-            Tips:
-            <br />- Pastikan koneksi internet stabil.
-            <br />- Jika masalah terus berlanjut, hubungi admin.
-            <br />
-            <br />Hasil mentah dari AI (bisa copy-paste untuk dicek formatnya):
-            <br />{quizRaw}
+          </div>
+        </div>
+
+        {/* Explanation */}
+        {showExplanation && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <h4 className="font-semibold text-gray-900 mb-3">Penjelasan</h4>
+            <p className="text-gray-700 leading-relaxed">{currentQuestion.explanation}</p>
           </div>
         )}
       </div>
+    );
+  };
+
+  // Render Quiz Results
+  const renderResults = () => {
+    if (!quizSession || !quizSession.isCompleted) return null;
+
+    const totalQuestions = quizSession.questions.length;
+    const correctAnswers = quizSession.score;
+    const percentage = Math.round((correctAnswers / totalQuestions) * 100);
+    const timeTaken = quizSession.timeEnded 
+      ? Math.floor((quizSession.timeEnded.getTime() - quizSession.timeStarted.getTime()) / 1000)
+      : timeElapsed;
+
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 sm:p-8 text-center">
+          <div className="mb-6">
+            <Trophy className="h-16 w-16 mx-auto mb-4 text-yellow-500" />
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Kuis Selesai!</h2>
+            <p className="text-gray-600">{getScoreMessage(correctAnswers, totalQuestions)}</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
+            <div className="bg-blue-50 rounded-lg p-4">
+              <div className="flex items-center justify-center mb-2">
+                <Target className="h-6 w-6 text-blue-600" />
+              </div>
+              <div className={`text-2xl font-bold ${getScoreColor(correctAnswers, totalQuestions)}`}>
+                {correctAnswers} / {totalQuestions}
+              </div>
+              <div className="text-sm text-gray-600">Jawaban Benar</div>
+            </div>
+
+            <div className="bg-green-50 rounded-lg p-4">
+              <div className="flex items-center justify-center mb-2">
+                <BarChart3 className="h-6 w-6 text-green-600" />
+              </div>
+              <div className={`text-2xl font-bold ${getScoreColor(correctAnswers, totalQuestions)}`}>
+                {percentage}%
+              </div>
+              <div className="text-sm text-gray-600">Persentase</div>
+            </div>
+
+            <div className="bg-orange-50 rounded-lg p-4">
+              <div className="flex items-center justify-center mb-2">
+                <Clock className="h-6 w-6 text-orange-600" />
+              </div>
+              <div className="text-2xl font-bold text-orange-600">
+                {formatTime(timeTaken)}
+              </div>
+              <div className="text-sm text-gray-600">Waktu</div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={handleRestartQuiz}
+              className="flex items-center space-x-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+            >
+              <Home className="h-5 w-5" />
+              <span>Kembali ke Menu</span>
+            </button>
+            <button
+              onClick={generateQuiz}
+              className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              <RefreshCw className="h-5 w-5" />
+              <span>Kuis Baru</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto p-4 sm:p-6">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Kuis AI Kanji</h1>
+        <p className="text-gray-600">Uji kemampuan bahasa Jepang Anda dengan kuis yang dibuat oleh AI</p>
+      </div>
+
+      {!quizSession && !generatingQuiz && renderSettings()}
+      {quizSession && !quizSession.isCompleted && renderQuiz()}
+      {quizSession && quizSession.isCompleted && renderResults()}
+
+      {/* AI Explanation Modal */}
+      {aiExplanation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-gray-900">Penjelasan Detail AI</h3>
+                <button
+                  onClick={() => setAiExplanation('')}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              {explanationLoading ? (
+                <div className="flex justify-center py-8">
+                  <LoadingSpinner size="lg" />
+                </div>
+              ) : (
+                <div className="prose prose-gray max-w-none">
+                  <p className="text-gray-700 whitespace-pre-line leading-relaxed">
+                    {aiExplanation}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default QuizAIPage; 
+export default QuizAIPage;

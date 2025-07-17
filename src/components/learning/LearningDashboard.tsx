@@ -32,12 +32,12 @@ const LearningDashboard: React.FC = () => {
 
   const tabs = [
     { id: 'kanji', label: 'Kanji', icon: BookOpen },
-    { id: 'grammar', label: 'Grammar', icon: Globe },
-    { id: 'vocabulary', label: 'Vocabulary', icon: GraduationCap },
-    { id: 'quiz', label: 'Quiz AI', icon: TrendingUp },
-    { id: 'example', label: 'Example AI', icon: Clock },
+    { id: 'grammar', label: 'Tata Bahasa', icon: Globe },
+    { id: 'vocabulary', label: 'Kosakata', icon: GraduationCap },
+    { id: 'quiz', label: 'Kuis AI', icon: TrendingUp },
+    { id: 'example', label: 'Contoh AI', icon: Clock },
     { id: 'jlpt', label: 'JLPT AI', icon: GraduationCap },
-    { id: 'kanji-search', label: 'Kanji Search', icon: BookOpen }
+    { id: 'kanji-search', label: 'Pencarian Kanji', icon: BookOpen }
   ];
 
   const handleLogout = async () => {
@@ -150,7 +150,7 @@ const LearningDashboard: React.FC = () => {
           <div className="bg-gradient-to-r from-green-500 to-green-600 p-6 rounded-xl shadow-lg text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm font-medium">Grammar Dipelajari</p>
+                <p className="text-green-100 text-sm font-medium">Tata Bahasa Dipelajari</p>
                 <p className="text-2xl font-bold">{grammarLearned}</p>
               </div>
               <Globe className="h-8 w-8 text-green-200" />
@@ -160,7 +160,7 @@ const LearningDashboard: React.FC = () => {
           <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-6 rounded-xl shadow-lg text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100 text-sm font-medium">Vocabulary Dipelajari</p>
+                <p className="text-purple-100 text-sm font-medium">Kosakata Dipelajari</p>
                 <p className="text-2xl font-bold">{vocabularyLearned}</p>
               </div>
               <GraduationCap className="h-8 w-8 text-purple-200" />
