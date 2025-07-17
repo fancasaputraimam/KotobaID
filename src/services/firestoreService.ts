@@ -126,6 +126,19 @@ class FirestoreService {
     return grammars.sort((a, b) => a.title.localeCompare(b.title));
   }
 
+  async getGrammars(): Promise<Grammar[]> {
+    const grammarRef = collection(db, 'grammar');
+    const q = query(grammarRef, orderBy('title'));
+    const snapshot = await getDocs(q);
+    
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt.toDate(),
+      updatedAt: doc.data().updatedAt.toDate()
+    })) as Grammar[];
+  }
+
   async saveGrammar(grammar: Omit<Grammar, 'id'>): Promise<string> {
     const docRef = doc(collection(db, 'grammar'));
     await setDoc(docRef, {
@@ -134,6 +147,14 @@ class FirestoreService {
       updatedAt: new Date()
     });
     return docRef.id;
+  }
+
+  async updateGrammar(id: string, updates: Partial<Grammar>): Promise<void> {
+    const docRef = doc(db, 'grammar', id);
+    await updateDoc(docRef, {
+      ...updates,
+      updatedAt: new Date()
+    });
   }
 
   // Vocabulary Operations
