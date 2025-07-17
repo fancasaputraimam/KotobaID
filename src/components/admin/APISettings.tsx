@@ -23,7 +23,7 @@ const APISettings: React.FC = () => {
       backendEndpoint: 'https://jabal-md08zjyh-eastus2.cognitiveservices.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2025-01-01-preview',
       apiKey: '50Ge3WiF7fMmIuPQ6ssLY7HhFxiMhiMpkDuxLfQwCcOn2m5QLcWDJQQJ99BGACHYHv6XJ3w3AAAAACOGuXbA',
       model: 'gpt-4o',
-      enabled: false
+      enabled: true
     }
   });
 

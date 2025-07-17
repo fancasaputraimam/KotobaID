@@ -298,6 +298,34 @@ Catatan: Ini adalah respons simulasi. Untuk penjelasan Azure OpenAI yang sesungg
     }
     return result;
   }
+
+  async getChatResponse(messages: Array<{role: 'user'|'ai', content: string}>): Promise<string> {
+    try {
+      // Convert messages to the format expected by Azure OpenAI
+      const formattedMessages = messages.map(msg => ({
+        role: msg.role === 'ai' ? 'assistant' : 'user',
+        content: msg.content
+      }));
+
+      // Get the latest user message for context
+      const latestUserMessage = messages.filter(msg => msg.role === 'user').pop();
+      if (!latestUserMessage) {
+        throw new Error('No user message found');
+      }
+
+      const request: AzureOpenAIRequest = {
+        prompt: latestUserMessage.content,
+        type: 'conversation',
+        context: messages.slice(-5).map(msg => `${msg.role}: ${msg.content}`).join('\n')
+      };
+
+      const response = await this.generateExplanation(request);
+      return response.text;
+    } catch (error) {
+      console.error('getChatResponse Error:', error);
+      return 'Maaf, terjadi kesalahan saat memproses permintaan Anda. Silakan coba lagi atau periksa pengaturan API.';
+    }
+  }
 }
 
 export const azureOpenAI = new AzureOpenAIService();
