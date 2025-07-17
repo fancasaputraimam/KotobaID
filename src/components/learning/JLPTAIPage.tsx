@@ -122,14 +122,24 @@ const JLPTAIPage: React.FC = () => {
   const generateJLPTQuiz = async () => {
     setGeneratingQuiz(true);
     try {
+      // Add randomization for variety
+      const randomSeed = Math.floor(Math.random() * 10000);
+      const timestamp = Date.now();
       const typeLabel = questionTypes.find(t => t.value === selectedType)?.label || 'Campuran';
       const levelInfo = jlptLevels.find(l => l.value === selectedLevel);
       
-      const prompt = `Buatkan ${questionCount} soal latihan JLPT level ${selectedLevel} dengan kriteria berikut:
+      const prompt = `[ID: ${randomSeed}-${timestamp}] Buatkan ${questionCount} soal latihan JLPT level ${selectedLevel} BARU dan BERVARIASI dengan kriteria berikut:
 - Tipe soal: ${selectedType === 'mixed' ? 'campuran grammar, vocabulary, kanji, dan reading' : typeLabel}
 - Level: ${selectedLevel} (${levelInfo?.description})
 - Bahasa Indonesia untuk pertanyaan dan pilihan jawaban
 - Sesuai dengan standar JLPT yang sesungguhnya
+
+PENTING: Buat soal yang BERBEDA dan UNIK. Gunakan:
+- Materi JLPT yang beragam dan tidak repetitif
+- Pola soal yang bervariasi dalam satu set
+- Topik dan konteks yang berbeda-beda
+- Tingkat kesulitan yang sesuai level ${selectedLevel}
+- JANGAN mengulang soal yang sama atau mirip dengan generator sebelumnya
 
 Format jawaban dalam JSON dengan struktur:
 {
@@ -147,6 +157,15 @@ Format jawaban dalam JSON dengan struktur:
     }
   ]
 }
+
+Pastikan:
+1. Soal BERVARIASI dan sesuai level ${selectedLevel}
+2. Tidak mengulang pola atau konten yang sama
+3. Mencakup berbagai aspek JLPT ${selectedLevel}
+4. Tingkat kesulitan konsisten dengan level
+5. Penjelasan yang edukatif dan membantu
+6. KREATIVITAS tinggi dalam pembuatan soal
+7. Menggunakan materi autentik JLPT
 
 Pastikan:
 1. Soal sesuai dengan level JLPT yang dipilih

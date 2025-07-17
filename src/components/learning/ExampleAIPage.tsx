@@ -168,15 +168,25 @@ const ExampleAIPage: React.FC = () => {
 
     setLoading(true);
     try {
+      // Add randomization seed for variety
+      const randomSeed = Math.floor(Math.random() * 10000);
+      const timestamp = Date.now();
       const contextLabel = contextOptions.find(c => c.value === currentRequest.context)?.label || 'Umum';
       const typeLabel = exampleTypes.find(t => t.value === currentRequest.type)?.label || 'Kata';
       
-      const prompt = `Buatkan ${currentRequest.count} contoh kalimat bahasa Jepang untuk ${typeLabel.toLowerCase()} "${currentRequest.word}" dengan kriteria berikut:
+      const prompt = `[ID: ${randomSeed}-${timestamp}] Buatkan ${currentRequest.count} contoh kalimat bahasa Jepang BARU dan BERVARIASI untuk ${typeLabel.toLowerCase()} "${currentRequest.word}" dengan kriteria berikut:
 - Level JLPT: ${currentRequest.level === 'mixed' ? 'campuran N5-N1' : currentRequest.level}
 - Konteks: ${contextLabel}
 - Tipe: ${typeLabel}
 - Sertakan furigana: ${currentRequest.includeFurigana ? 'Ya' : 'Tidak'}
 - Sertakan romaji: ${currentRequest.includeRomaji ? 'Ya' : 'Tidak'}
+
+PENTING: Buat kalimat yang BERBEDA dan KREATIF. Gunakan:
+- Situasi yang bervariasi dan menarik
+- Struktur kalimat yang berbeda-beda
+- Konteks yang beragam dalam kategori ${contextLabel}
+- Gaya bicara yang bervariasi (formal/informal)
+- JANGAN mengulang kalimat yang sama atau mirip
 
 Format jawaban dalam JSON dengan struktur:
 {
@@ -194,14 +204,16 @@ Format jawaban dalam JSON dengan struktur:
 }
 
 Pastikan:
-1. Kalimat bervariasi dan natural
-2. Mencakup berbagai situasi dalam konteks yang dipilih
+1. Kalimat BERVARIASI, natural, dan BERBEDA dari generator sebelumnya
+2. Mencakup berbagai situasi UNIK dalam konteks yang dipilih
 3. Sesuai dengan level JLPT yang diminta
 4. ${currentRequest.includeRomaji ? 'Romaji akurat dan mudah dibaca' : ''}
 5. Terjemahan Indonesia yang tepat dan natural
 6. Konteks yang jelas dan membantu pemahaman
 7. Kategori yang sesuai dengan konteks
-8. ${currentRequest.includeFurigana ? 'Furigana untuk semua kanji' : 'Tanpa furigana'}`;
+8. ${currentRequest.includeFurigana ? 'Furigana untuk semua kanji' : 'Tanpa furigana'}
+9. KREATIVITAS tinggi dalam pembuatan kalimat
+10. TIDAK mengulang pola atau contoh yang sama`;
 
       const response = await azureOpenAI.getChatResponse([
         { role: 'user', content: prompt }
@@ -220,21 +232,30 @@ Pastikan:
         setGenerationHistory(prev => [currentRequest.word, ...prev.slice(0, 9)]);
       } catch (parseError) {
         console.error('Error parsing examples data:', parseError);
-        // Fallback dengan contoh sederhana
-        const fallbackExamples: ExampleSentence[] = [
-          {
-            id: '1',
-            japanese: currentRequest.includeFurigana ? 
-              `これは${currentRequest.word}です。` : 
-              `これは${currentRequest.word}です。`,
-            romaji: currentRequest.includeRomaji ? 
-              `Kore wa ${currentRequest.word} desu.` : '',
-            indonesian: `Ini adalah ${currentRequest.word}.`,
-            context: 'Kalimat pengenalan dasar',
-            level: 'N5',
-            category: 'basic_introduction'
-          }
+        console.log('Raw response:', response);
+        
+        // Generate random fallback examples
+        const fallbackPatterns = [
+          `${currentRequest.word}を使います。`,
+          `${currentRequest.word}が好きです。`,
+          `${currentRequest.word}について話しましょう。`,
+          `${currentRequest.word}を覚えています。`,
+          `${currentRequest.word}は大切です。`
         ];
+        
+        const fallbackExamples: ExampleSentence[] = [];
+        for (let i = 0; i < Math.min(currentRequest.count, 3); i++) {
+          const randomPattern = fallbackPatterns[Math.floor(Math.random() * fallbackPatterns.length)];
+          fallbackExamples.push({
+            id: (i + 1).toString(),
+            japanese: randomPattern,
+            romaji: currentRequest.includeRomaji ? 'Romaji akan ditampilkan di sini' : '',
+            indonesian: `Contoh penggunaan ${currentRequest.word} dalam kalimat.`,
+            context: `Situasi ${i + 1} dengan ${currentRequest.word}`,
+            level: currentRequest.level === 'mixed' ? 'N5' : currentRequest.level,
+            category: `${currentRequest.context}_${i + 1}`
+          });
+        }
         setExamples(fallbackExamples);
       }
     } catch (error) {

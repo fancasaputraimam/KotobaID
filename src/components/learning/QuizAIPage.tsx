@@ -127,10 +127,21 @@ const QuizAIPage: React.FC = () => {
   const generateQuiz = async () => {
     setGeneratingQuiz(true);
     try {
-      const prompt = `Buatkan ${questionCount} soal kuis bahasa Jepang dengan kriteria berikut:
+      // Add randomization seed to ensure different results
+      const randomSeed = Math.floor(Math.random() * 10000);
+      const timestamp = Date.now();
+      
+      const prompt = `[ID: ${randomSeed}-${timestamp}] Buatkan ${questionCount} soal kuis bahasa Jepang BARU dan UNIK dengan kriteria berikut:
 - Tipe: ${quizType === 'mixed' ? 'campuran kanji, kosakata, dan tata bahasa' : quizType}
 - Tingkat kesulitan: ${difficulty === 'mixed' ? 'campuran mudah, sedang, dan sulit' : difficulty}
 - Level JLPT: ${jlptLevel === 'mixed' ? 'campuran N5-N1' : jlptLevel}
+
+PENTING: Buat soal yang BERBEDA dari sebelumnya. Gunakan variasi:
+- Kanji yang berbeda-beda
+- Kosakata yang bervariasi  
+- Pola tata bahasa yang beragam
+- Konteks situasi yang berbeda
+- Jangan gunakan soal yang sama atau mirip
 
 Format jawaban dalam JSON dengan struktur:
 {
@@ -151,10 +162,12 @@ Format jawaban dalam JSON dengan struktur:
 
 Pastikan:
 1. Semua pertanyaan dan pilihan dalam bahasa Indonesia
-2. Soal bervariasi dan menantang
-3. Penjelasan yang jelas dan edukatif
-4. Tingkat kesulitan sesuai permintaan
-5. Jawaban yang akurat dan terpercaya`;
+2. Soal BERVARIASI dan BERBEDA dari generator sebelumnya
+3. Gunakan kanji/kosakata/grammar yang BERAGAM
+4. Penjelasan yang jelas dan edukatif
+5. Tingkat kesulitan sesuai permintaan
+6. Jawaban yang akurat dan terpercaya
+7. TIDAK mengulang soal yang sama`;
 
       const response = await azureOpenAI.getChatResponse([
         { role: 'user', content: prompt }
@@ -181,22 +194,35 @@ Pastikan:
         setShowSettings(false);
       } catch (parseError) {
         console.error('Error parsing quiz data:', parseError);
-        // Fallback dengan soal contoh
+        console.log('Raw response:', response);
+        // Generate random fallback quiz
+        const kanjiSet = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '山', '川', '月', '日', '水', '火', '木', '金', '土', '空', '雨', '風', '雪', '花'];
+        const randomKanji = kanjiSet[Math.floor(Math.random() * kanjiSet.length)];
+        
+        const fallbackQuestions = [];
+        for (let i = 0; i < Math.min(questionCount, 5); i++) {
+          const randomKanjiForQuestion = kanjiSet[Math.floor(Math.random() * kanjiSet.length)];
+          fallbackQuestions.push({
+            id: (i + 1).toString(),
+            type: 'kanji' as const,
+            question: `Apa arti dari kanji ${randomKanjiForQuestion}?`,
+            options: [
+              randomKanjiForQuestion === '山' ? 'Gunung' : 'Pilihan A',
+              randomKanjiForQuestion === '川' ? 'Sungai' : 'Pilihan B', 
+              randomKanjiForQuestion === '水' ? 'Air' : 'Pilihan C',
+              'Pilihan D'
+            ].sort(() => Math.random() - 0.5),
+            correct: randomKanjiForQuestion === '山' ? 'Gunung' : randomKanjiForQuestion === '川' ? 'Sungai' : 'Air',
+            explanation: `Kanji ${randomKanjiForQuestion} memiliki arti dan penggunaan khusus dalam bahasa Jepang.`,
+            difficulty: 'easy' as const,
+            category: 'Kanji Dasar',
+            source: 'JLPT N5'
+          });
+        }
+        
         const fallbackQuiz: QuizSession = {
           id: Date.now().toString(),
-          questions: [
-            {
-              id: '1',
-              type: 'kanji',
-              question: 'Apa arti dari kanji 山?',
-              options: ['Gunung', 'Laut', 'Sungai', 'Hutan'],
-              correct: 'Gunung',
-              explanation: 'Kanji 山 (yama/san) berarti gunung dalam bahasa Jepang.',
-              difficulty: 'easy',
-              category: 'Kanji Dasar',
-              source: 'JLPT N5'
-            }
-          ],
+          questions: fallbackQuestions,
           currentQuestion: 0,
           score: 0,
           timeStarted: new Date(),
@@ -213,6 +239,21 @@ Pastikan:
     } finally {
       setGeneratingQuiz(false);
     }
+  };
+
+  const generateNewQuiz = () => {
+    // Force new quiz generation with different seed
+    setQuizSession(null);
+    setSelectedAnswer('');
+    setShowResult(false);
+    setShowExplanation(false);
+    setTimeElapsed(0);
+    setIsTimerActive(false);
+    
+    // Add small delay to ensure different timestamp
+    setTimeout(() => {
+      generateQuiz();
+    }, 100);
   };
 
   const handleAnswerSelect = (answer: string) => {
