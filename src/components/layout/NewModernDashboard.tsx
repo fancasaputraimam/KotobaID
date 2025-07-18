@@ -54,14 +54,11 @@ import QuizAIPage from '../learning/QuizAIPage';
 import ExampleAIPage from '../learning/ExampleAIPage';
 import JLPTAIPage from '../learning/JLPTAIPage';
 import KanjiSearchPage from '../learning/KanjiSearchPage';
-import ProgressDashboard from '../progress/ProgressDashboard';
 import FlashcardStudy from '../flashcard/FlashcardStudy';
 import FlashcardManager from '../flashcard/FlashcardManager';
 import WritingPractice from '../writing/WritingPractice';
 import ListeningPractice from '../audio/ListeningPractice';
 import ReadingComprehension from '../reading/ReadingComprehension';
-import AnalyticsDashboard from '../analytics/AnalyticsDashboard';
-import AIRecommendations from '../recommendations/AIRecommendations';
 import StudyTools from '../studyTools/StudyTools';
 import Settings from '../settings/Settings';
 import UserProfile from '../profile/UserProfile';
@@ -86,9 +83,6 @@ const NewModernDashboard: React.FC = () => {
       label: 'Main',
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: Home, color: 'text-blue-600', bgColor: 'bg-blue-50' },
-        { id: 'progress', label: 'Progress', icon: BarChart3, color: 'text-green-600', bgColor: 'bg-green-50' },
-        { id: 'analytics', label: 'Analytics', icon: PieChart, color: 'text-purple-600', bgColor: 'bg-purple-50' },
-        { id: 'ai-recommendations', label: 'AI Recommendations', icon: Lightbulb, color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
       ]
     },
     {
@@ -205,12 +199,6 @@ const NewModernDashboard: React.FC = () => {
     switch (activeTab) {
       case 'dashboard':
         return <DashboardHome userProgress={userProgress} onTabChange={setActiveTab} />;
-      case 'progress':
-        return <ProgressDashboard />;
-      case 'analytics':
-        return <AnalyticsDashboard />;
-      case 'ai-recommendations':
-        return <AIRecommendations />;
       case 'study-tools':
         return <StudyTools />;
       case 'flashcard-study':
