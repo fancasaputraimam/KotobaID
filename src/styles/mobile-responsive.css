@@ -1,0 +1,374 @@
+/* Mobile-first responsive styles for KotobaID */
+
+/* Hide scrollbar for webkit browsers */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Improved touch targets for mobile */
+@media (max-width: 768px) {
+  /* Larger touch targets */
+  button, .clickable {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Better spacing for mobile */
+  .mobile-padding {
+    padding: 1rem;
+  }
+  
+  /* Responsive text sizes */
+  .mobile-text-sm {
+    font-size: 0.875rem;
+  }
+  
+  .mobile-text-base {
+    font-size: 1rem;
+  }
+  
+  .mobile-text-lg {
+    font-size: 1.125rem;
+  }
+  
+  /* Mobile-friendly card layouts */
+  .mobile-card {
+    padding: 1rem;
+    margin: 0.5rem 0;
+    border-radius: 0.75rem;
+  }
+  
+  /* Improved mobile forms */
+  input[type="text"], 
+  input[type="email"], 
+  input[type="password"], 
+  textarea, 
+  select {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+  }
+  
+  /* Mobile navigation improvements */
+  .mobile-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    z-index: 50;
+    padding: 0.5rem 1rem;
+  }
+  
+  /* Mobile sidebar */
+  .mobile-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 280px;
+    background: white;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    z-index: 40;
+  }
+  
+  .mobile-sidebar.open {
+    transform: translateX(0);
+  }
+  
+  /* Mobile overlay */
+  .mobile-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 30;
+  }
+  
+  /* Mobile content spacing */
+  .mobile-content {
+    padding-bottom: 5rem; /* Space for bottom navigation */
+  }
+  
+  /* Mobile grid improvements */
+  .mobile-grid-1 {
+    grid-template-columns: 1fr;
+  }
+  
+  .mobile-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  /* Mobile dictionary styles */
+  .mobile-dictionary-card {
+    padding: 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 1rem;
+  }
+  
+  .mobile-dictionary-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  /* Mobile sentence analyzer */
+  .mobile-analyzer-token {
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+    margin: 0.25rem 0;
+  }
+  
+  /* Mobile settings */
+  .mobile-settings-section {
+    margin-bottom: 1.5rem;
+  }
+  
+  .mobile-settings-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+  
+  .mobile-settings-nav button {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
+/* Tablet styles */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Tablet-specific adjustments */
+  .tablet-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .tablet-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  /* Tablet sidebar */
+  .tablet-sidebar {
+    width: 240px;
+  }
+  
+  /* Tablet content */
+  .tablet-content {
+    margin-left: 240px;
+  }
+}
+
+/* Desktop styles */
+@media (min-width: 1025px) {
+  /* Desktop-specific improvements */
+  .desktop-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .desktop-grid-5 {
+    grid-template-columns: repeat(5, 1fr);
+  }
+  
+  /* Desktop sidebar */
+  .desktop-sidebar {
+    width: 280px;
+  }
+  
+  .desktop-sidebar.collapsed {
+    width: 64px;
+  }
+  
+  /* Desktop content */
+  .desktop-content {
+    margin-left: 280px;
+  }
+  
+  .desktop-content.collapsed {
+    margin-left: 64px;
+  }
+  
+  /* Desktop hover effects */
+  .desktop-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .high-contrast {
+    border: 2px solid;
+    background: white;
+    color: black;
+  }
+  
+  .high-contrast.dark {
+    background: black;
+    color: white;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  /* Ensure good contrast for printing */
+  * {
+    color: black !important;
+    background: white !important;
+  }
+  
+  /* Remove shadows and borders for printing */
+  .shadow-sm, .shadow-md, .shadow-lg {
+    box-shadow: none !important;
+  }
+  
+  .border {
+    border: 1px solid #000 !important;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .dark-mode {
+    background-color: #1a1a1a;
+    color: #ffffff;
+  }
+  
+  .dark-mode .bg-white {
+    background-color: #2d2d2d;
+  }
+  
+  .dark-mode .bg-gray-50 {
+    background-color: #1a1a1a;
+  }
+  
+  .dark-mode .bg-gray-100 {
+    background-color: #2d2d2d;
+  }
+  
+  .dark-mode .text-gray-900 {
+    color: #ffffff;
+  }
+  
+  .dark-mode .text-gray-600 {
+    color: #a0a0a0;
+  }
+  
+  .dark-mode .text-gray-500 {
+    color: #808080;
+  }
+  
+  .dark-mode .border-gray-200 {
+    border-color: #404040;
+  }
+  
+  .dark-mode .border-gray-300 {
+    border-color: #505050;
+  }
+}
+
+/* Accessibility improvements */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.focus-visible:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Loading states */
+.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid #3b82f6;
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive utilities */
+.responsive-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+@media (min-width: 640px) {
+  .responsive-container {
+    padding: 0 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-container {
+    padding: 0 2rem;
+  }
+}
+
+/* Performance optimizations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}

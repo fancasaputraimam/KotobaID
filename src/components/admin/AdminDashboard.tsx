@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { seedDemoData, checkDemoDataExists } from '../../utils/seedDemoData';
 import { 
   Settings, 
   Database, 
@@ -268,12 +269,37 @@ const AdminDashboard: React.FC = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [seedingData, setSeedingData] = useState(false);
 
   const handleLogout = async () => {
     try {
       await logout();
     } catch (error) {
       console.error('Logout error:', error);
+    }
+  };
+
+  const handleSeedDemoData = async () => {
+    if (seedingData) return;
+    
+    try {
+      setSeedingData(true);
+      const exists = await checkDemoDataExists();
+      
+      if (exists) {
+        if (confirm('Demo data already exists. Are you sure you want to add more data?')) {
+          await seedDemoData();
+          alert('Demo data seeded successfully!');
+        }
+      } else {
+        await seedDemoData();
+        alert('Demo data seeded successfully!');
+      }
+    } catch (error) {
+      console.error('Error seeding demo data:', error);
+      alert('Error seeding demo data: ' + error.message);
+    } finally {
+      setSeedingData(false);
     }
   };
 
@@ -528,6 +554,18 @@ const AdminDashboard: React.FC = () => {
             <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
               <Upload className="h-4 w-4" />
               <span>Restore Database</span>
+            </button>
+            <button 
+              onClick={handleSeedDemoData}
+              disabled={seedingData}
+              className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {seedingData ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Database className="h-4 w-4" />
+              )}
+              <span>{seedingData ? 'Seeding...' : 'Seed Demo Data'}</span>
             </button>
           </div>
         </div>
