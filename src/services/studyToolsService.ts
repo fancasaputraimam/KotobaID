@@ -107,11 +107,24 @@ export class StudyToolsService {
           difficulty: parsed.difficulty || 'intermediate'
         };
       } catch (parseError) {
-        // Fallback if JSON parsing fails
-        return {
-          translation: response.substring(0, 100) + '...',
-          difficulty: 'intermediate'
-        };
+        // Fallback if JSON parsing fails - try to extract translation from response
+        const lines = response.split('\n');
+        let translation = 'Terjemahan tidak tersedia';
+        let difficulty: 'beginner' | 'intermediate' | 'advanced' = 'intermediate';
+        
+        for (const line of lines) {
+          if (line.includes('translation') || line.includes('terjemahan')) {
+            translation = line.replace(/.*[:=]\s*/, '').replace(/[",]/g, '').trim();
+          }
+          if (line.includes('difficulty') || line.includes('tingkat')) {
+            const difficultyMatch = line.match(/(beginner|intermediate|advanced)/i);
+            if (difficultyMatch) {
+              difficulty = difficultyMatch[1].toLowerCase() as 'beginner' | 'intermediate' | 'advanced';
+            }
+          }
+        }
+        
+        return { translation, difficulty };
       }
     } catch (error) {
       console.error('Error getting AI analysis:', error);
@@ -162,12 +175,177 @@ export class StudyToolsService {
         }));
       } catch (parseError) {
         console.error('Error parsing AI tokenization:', parseError);
-        return [];
+        // Return fallback tokenization for common sentences
+        return this.getFallbackTokenization(sentence);
       }
     } catch (error) {
       console.error('Error in AI tokenization:', error);
-      return [];
+      // Return fallback tokenization for common sentences
+      return this.getFallbackTokenization(sentence);
     }
+  }
+
+  private static getFallbackTokenization(sentence: string): Token[] {
+    const commonTokens: {[key: string]: Token} = {
+      'こんにちは': {
+        id: 'token_konnichiwa',
+        surface: 'こんにちは',
+        reading: 'こんにちは',
+        baseForm: 'こんにちは',
+        partOfSpeech: 'interjection',
+        meaning: 'Hello, good afternoon',
+        indonesian: 'Halo, selamat siang',
+        isKnown: true,
+        difficulty: 1,
+        jlptLevel: 'N5'
+      },
+      '私': {
+        id: 'token_watashi',
+        surface: '私',
+        reading: 'わたし',
+        baseForm: '私',
+        partOfSpeech: 'pronoun',
+        meaning: 'I, me',
+        indonesian: 'Saya',
+        isKnown: true,
+        difficulty: 1,
+        jlptLevel: 'N5'
+      },
+      'は': {
+        id: 'token_wa',
+        surface: 'は',
+        reading: 'は',
+        baseForm: 'は',
+        partOfSpeech: 'particle',
+        meaning: 'topic marker',
+        indonesian: 'partikel penanda topik',
+        isKnown: true,
+        difficulty: 2,
+        jlptLevel: 'N5'
+      },
+      '学生': {
+        id: 'token_gakusei',
+        surface: '学生',
+        reading: 'がくせい',
+        baseForm: '学生',
+        partOfSpeech: 'noun',
+        meaning: 'student',
+        indonesian: 'siswa, mahasiswa',
+        isKnown: true,
+        difficulty: 2,
+        jlptLevel: 'N5'
+      },
+      'です': {
+        id: 'token_desu',
+        surface: 'です',
+        reading: 'です',
+        baseForm: 'だ',
+        partOfSpeech: 'auxiliary verb',
+        meaning: 'polite copula',
+        indonesian: 'adalah (bentuk sopan)',
+        isKnown: true,
+        difficulty: 2,
+        jlptLevel: 'N5'
+      },
+      '今日': {
+        id: 'token_kyou',
+        surface: '今日',
+        reading: 'きょう',
+        baseForm: '今日',
+        partOfSpeech: 'noun',
+        meaning: 'today',
+        indonesian: 'hari ini',
+        isKnown: true,
+        difficulty: 2,
+        jlptLevel: 'N5'
+      },
+      '天気': {
+        id: 'token_tenki',
+        surface: '天気',
+        reading: 'てんき',
+        baseForm: '天気',
+        partOfSpeech: 'noun',
+        meaning: 'weather',
+        indonesian: 'cuaca',
+        isKnown: true,
+        difficulty: 2,
+        jlptLevel: 'N5'
+      },
+      'が': {
+        id: 'token_ga',
+        surface: 'が',
+        reading: 'が',
+        baseForm: 'が',
+        partOfSpeech: 'particle',
+        meaning: 'subject marker',
+        indonesian: 'partikel penanda subjek',
+        isKnown: true,
+        difficulty: 2,
+        jlptLevel: 'N5'
+      },
+      'いい': {
+        id: 'token_ii',
+        surface: 'いい',
+        reading: 'いい',
+        baseForm: 'いい',
+        partOfSpeech: 'i-adjective',
+        meaning: 'good',
+        indonesian: 'baik',
+        isKnown: true,
+        difficulty: 2,
+        jlptLevel: 'N5'
+      }
+    };
+
+    const tokens: Token[] = [];
+    let currentIndex = 0;
+
+    // Simple tokenization for common patterns
+    const words = sentence.split('');
+    let currentWord = '';
+    
+    for (let i = 0; i < words.length; i++) {
+      currentWord += words[i];
+      
+      if (commonTokens[currentWord]) {
+        tokens.push({
+          ...commonTokens[currentWord],
+          id: `token_${currentIndex++}`
+        });
+        currentWord = '';
+      }
+    }
+
+    // If we have remaining characters, add them as unknown tokens
+    if (currentWord) {
+      tokens.push({
+        id: `token_${currentIndex}`,
+        surface: currentWord,
+        reading: currentWord,
+        baseForm: currentWord,
+        partOfSpeech: 'unknown',
+        meaning: 'Unknown meaning',
+        indonesian: 'Arti tidak diketahui',
+        isKnown: false,
+        difficulty: 3,
+        jlptLevel: 'N3'
+      });
+    }
+
+    return tokens.length > 0 ? tokens : [
+      {
+        id: 'token_0',
+        surface: sentence,
+        reading: sentence,
+        baseForm: sentence,
+        partOfSpeech: 'unknown',
+        meaning: 'Unknown meaning',
+        indonesian: 'Arti tidak diketahui',
+        isKnown: false,
+        difficulty: 3,
+        jlptLevel: 'N3'
+      }
+    ];
   }
 
   private static async extractGrammar(sentence: string, tokens: Token[]): Promise<GrammarAnalysis[]> {
@@ -206,12 +384,58 @@ export class StudyToolsService {
         }));
       } catch (parseError) {
         console.error('Error parsing AI grammar analysis:', parseError);
-        return [];
+        return this.getFallbackGrammarAnalysis(sentence, tokens);
       }
     } catch (error) {
       console.error('Error in AI grammar analysis:', error);
-      return [];
+      return this.getFallbackGrammarAnalysis(sentence, tokens);
     }
+  }
+
+  private static getFallbackGrammarAnalysis(sentence: string, tokens: Token[]): GrammarAnalysis[] {
+    const grammarPatterns: GrammarAnalysis[] = [];
+    
+    // Check for common grammar patterns
+    if (sentence.includes('は') && sentence.includes('です')) {
+      grammarPatterns.push({
+        id: 'grammar_wa_desu',
+        pattern: 'は + です',
+        explanation: 'Topic marker with polite copula',
+        indonesian: 'Pola kalimat dasar dengan partikel は dan です',
+        example: '私は学生です。',
+        level: 'basic',
+        category: 'sentence-structure',
+        relatedPatterns: ['は + だ', 'は + である']
+      });
+    }
+    
+    if (sentence.includes('が') && sentence.includes('いい')) {
+      grammarPatterns.push({
+        id: 'grammar_ga_ii',
+        pattern: 'が + いい',
+        explanation: 'Subject marker with i-adjective',
+        indonesian: 'Partikel が dengan kata sifat い',
+        example: '天気がいいです。',
+        level: 'basic',
+        category: 'adjectives',
+        relatedPatterns: ['が + 悪い', 'が + 大きい']
+      });
+    }
+    
+    if (sentence.includes('を') && tokens.some(t => t.partOfSpeech === 'verb')) {
+      grammarPatterns.push({
+        id: 'grammar_wo_verb',
+        pattern: 'を + Verb',
+        explanation: 'Direct object marker with verb',
+        indonesian: 'Partikel objek langsung dengan kata kerja',
+        example: 'ご飯を食べます。',
+        level: 'basic',
+        category: 'particles',
+        relatedPatterns: ['に + Verb', 'で + Verb']
+      });
+    }
+    
+    return grammarPatterns;
   }
 
   private static async generateSentenceBreakdown(

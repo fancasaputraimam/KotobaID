@@ -312,12 +312,29 @@ class FirestoreService {
         );
       });
 
+      // If no results found, use fallback data
+      if (filteredEntries.length === 0 && searchQuery) {
+        const fallbackEntries = this.getFallbackDictionaryEntries(searchQuery);
+        return {
+          entries: fallbackEntries,
+          total: fallbackEntries.length
+        };
+      }
+
       return {
         entries: filteredEntries,
         total: filteredEntries.length
       };
     } catch (error) {
       console.error('Error getting dictionary entries:', error);
+      // Return fallback data on error
+      if (searchQuery) {
+        const fallbackEntries = this.getFallbackDictionaryEntries(searchQuery);
+        return {
+          entries: fallbackEntries,
+          total: fallbackEntries.length
+        };
+      }
       return { entries: [], total: 0 };
     }
   }
@@ -329,7 +346,12 @@ class FirestoreService {
       const q = query(dictRef, where('frequency', '>=', 4), orderBy('frequency', 'desc'), limit(10));
       const snapshot = await getDocs(q);
       
-      if (snapshot.empty) return null;
+      if (snapshot.empty) {
+        // Use fallback data
+        const fallbackData = this.getFallbackDictionaryEntries('');
+        const today = new Date().getDate();
+        return fallbackData[today % fallbackData.length] || null;
+      }
       
       const words = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -345,7 +367,10 @@ class FirestoreService {
       return selectedWord;
     } catch (error) {
       console.error('Error getting word of the day:', error);
-      return null;
+      // Use fallback data
+      const fallbackData = this.getFallbackDictionaryEntries('');
+      const today = new Date().getDate();
+      return fallbackData[today % fallbackData.length] || null;
     }
   }
 
@@ -377,6 +402,12 @@ class FirestoreService {
       const q = query(dictRef, orderBy('frequency', 'desc'), limit(limit));
       const snapshot = await getDocs(q);
       
+      if (snapshot.empty) {
+        // Use fallback data
+        const fallbackData = this.getFallbackDictionaryEntries('');
+        return fallbackData.slice(0, limit);
+      }
+      
       return snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
@@ -385,7 +416,9 @@ class FirestoreService {
       })) as DictionaryEntry[];
     } catch (error) {
       console.error('Error getting popular words:', error);
-      return [];
+      // Use fallback data
+      const fallbackData = this.getFallbackDictionaryEntries('');
+      return fallbackData.slice(0, limit);
     }
   }
 
@@ -439,6 +472,253 @@ class FirestoreService {
       console.error('Error adding dictionary entry:', error);
       throw error;
     }
+  }
+
+  private getFallbackDictionaryEntries(searchQuery: string): DictionaryEntry[] {
+    const fallbackData: DictionaryEntry[] = [
+      {
+        id: 'fallback_1',
+        word: 'こんにちは',
+        reading: 'こんにちは',
+        meanings: [
+          {
+            id: 'meaning_1',
+            definition: 'A greeting used during the day',
+            indonesian: 'Halo, selamat siang',
+            english: 'Hello, good afternoon',
+            context: 'formal/casual greeting'
+          }
+        ],
+        partOfSpeech: ['interjection'],
+        jlptLevel: 'N5',
+        frequency: 5,
+        examples: [
+          {
+            id: 'example_1',
+            japanese: 'こんにちは、田中さん。',
+            reading: 'こんにちは、たなかさん。',
+            indonesian: 'Halo, Tanaka-san.',
+            english: 'Hello, Mr. Tanaka.',
+            difficulty: 'beginner',
+            source: 'common phrases',
+            tags: ['greeting', 'polite']
+          }
+        ],
+        tags: ['greeting', 'common', 'polite'],
+        source: 'internal',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'fallback_2',
+        word: '学生',
+        reading: 'がくせい',
+        meanings: [
+          {
+            id: 'meaning_2',
+            definition: 'A person who is studying at a school or university',
+            indonesian: 'Siswa, mahasiswa',
+            english: 'Student',
+            context: 'education'
+          }
+        ],
+        partOfSpeech: ['noun'],
+        jlptLevel: 'N5',
+        frequency: 4,
+        examples: [
+          {
+            id: 'example_2',
+            japanese: '私は学生です。',
+            reading: 'わたしはがくせいです。',
+            indonesian: 'Saya adalah siswa.',
+            english: 'I am a student.',
+            difficulty: 'beginner',
+            source: 'basic conversations',
+            tags: ['self-introduction', 'school']
+          }
+        ],
+        kanji: [
+          {
+            character: '学',
+            meaning: 'study, learning',
+            onyomi: ['ガク'],
+            kunyomi: ['まな'],
+            strokeCount: 8,
+            jlptLevel: 'N5',
+            frequency: 5
+          },
+          {
+            character: '生',
+            meaning: 'life, birth',
+            onyomi: ['セイ', 'ショウ'],
+            kunyomi: ['い', 'う', 'なま'],
+            strokeCount: 5,
+            jlptLevel: 'N5',
+            frequency: 5
+          }
+        ],
+        tags: ['education', 'occupation', 'common'],
+        source: 'internal',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'fallback_3',
+        word: '今日',
+        reading: 'きょう',
+        meanings: [
+          {
+            id: 'meaning_3',
+            definition: 'This day, the current day',
+            indonesian: 'Hari ini',
+            english: 'Today',
+            context: 'time reference'
+          }
+        ],
+        partOfSpeech: ['noun'],
+        jlptLevel: 'N5',
+        frequency: 5,
+        examples: [
+          {
+            id: 'example_3',
+            japanese: '今日は天気がいいです。',
+            reading: 'きょうはてんきがいいです。',
+            indonesian: 'Hari ini cuacanya bagus.',
+            english: 'The weather is nice today.',
+            difficulty: 'beginner',
+            source: 'weather conversations',
+            tags: ['weather', 'time', 'daily']
+          }
+        ],
+        kanji: [
+          {
+            character: '今',
+            meaning: 'now, present',
+            onyomi: ['コン', 'キン'],
+            kunyomi: ['いま'],
+            strokeCount: 4,
+            jlptLevel: 'N5',
+            frequency: 5
+          },
+          {
+            character: '日',
+            meaning: 'day, sun',
+            onyomi: ['ニチ', 'ジツ'],
+            kunyomi: ['ひ', 'か'],
+            strokeCount: 4,
+            jlptLevel: 'N5',
+            frequency: 5
+          }
+        ],
+        tags: ['time', 'daily', 'common'],
+        source: 'internal',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'fallback_4',
+        word: '食べる',
+        reading: 'たべる',
+        meanings: [
+          {
+            id: 'meaning_4',
+            definition: 'To eat, to consume food',
+            indonesian: 'Makan',
+            english: 'To eat',
+            context: 'daily activities'
+          }
+        ],
+        partOfSpeech: ['verb'],
+        jlptLevel: 'N5',
+        frequency: 5,
+        examples: [
+          {
+            id: 'example_4',
+            japanese: '朝ごはんを食べます。',
+            reading: 'あさごはんをたべます。',
+            indonesian: 'Saya makan sarapan.',
+            english: 'I eat breakfast.',
+            difficulty: 'beginner',
+            source: 'daily routines',
+            tags: ['food', 'daily', 'routine']
+          }
+        ],
+        kanji: [
+          {
+            character: '食',
+            meaning: 'eat, food',
+            onyomi: ['ショク'],
+            kunyomi: ['た', 'く'],
+            strokeCount: 9,
+            jlptLevel: 'N5',
+            frequency: 5
+          }
+        ],
+        tags: ['food', 'verb', 'daily'],
+        source: 'internal',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'fallback_5',
+        word: '美しい',
+        reading: 'うつくしい',
+        meanings: [
+          {
+            id: 'meaning_5',
+            definition: 'Beautiful, lovely, pretty',
+            indonesian: 'Indah, cantik',
+            english: 'Beautiful',
+            context: 'describing appearance'
+          }
+        ],
+        partOfSpeech: ['adjective'],
+        jlptLevel: 'N4',
+        frequency: 3,
+        examples: [
+          {
+            id: 'example_5',
+            japanese: '桜の花が美しいです。',
+            reading: 'さくらのはながうつくしいです。',
+            indonesian: 'Bunga sakura itu indah.',
+            english: 'The cherry blossoms are beautiful.',
+            difficulty: 'intermediate',
+            source: 'nature descriptions',
+            tags: ['nature', 'description', 'beauty']
+          }
+        ],
+        kanji: [
+          {
+            character: '美',
+            meaning: 'beauty, beautiful',
+            onyomi: ['ビ'],
+            kunyomi: ['うつく'],
+            strokeCount: 9,
+            jlptLevel: 'N4',
+            frequency: 3
+          }
+        ],
+        tags: ['beauty', 'adjective', 'description'],
+        source: 'internal',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ];
+
+    // Filter fallback data based on search query
+    if (!searchQuery) {
+      return fallbackData;
+    }
+    
+    const query = searchQuery.toLowerCase();
+    return fallbackData.filter(entry => 
+      entry.word.toLowerCase().includes(query) ||
+      entry.reading.toLowerCase().includes(query) ||
+      entry.meanings.some(meaning => 
+        meaning.indonesian.toLowerCase().includes(query) ||
+        meaning.definition.toLowerCase().includes(query)
+      )
+    );
   }
 }
 
