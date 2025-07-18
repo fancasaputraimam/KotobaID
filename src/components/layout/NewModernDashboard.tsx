@@ -340,10 +340,7 @@ const NewModernDashboard: React.FC = () => {
               {/* User Menu */}
               <div className="relative" ref={profileDropdownRef}>
                 <button 
-                  onClick={() => {
-                    setActiveTab('profile');
-                    setProfileDropdownOpen(!profileDropdownOpen);
-                  }}
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                   className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-all duration-300 hover:scale-105"
                 >
                   <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
@@ -364,7 +361,7 @@ const NewModernDashboard: React.FC = () => {
 
                 {/* User Dropdown */}
                 {profileDropdownOpen && (
-                  <div className="absolute top-full right-0 w-48 bg-white rounded-xl shadow-lg border border-gray-200 mt-2 z-50 transition-all duration-300 ease-out transform scale-100 opacity-100"
+                  <div className="absolute top-full right-0 w-44 bg-white rounded-xl shadow-lg border border-gray-200 mt-2 z-50 transition-all duration-300 ease-out transform scale-100 opacity-100"
                     style={{
                       animation: 'slideInDown 0.3s ease-out forwards'
                     }}>
@@ -378,15 +375,6 @@ const NewModernDashboard: React.FC = () => {
                       >
                         <User className="h-4 w-4 transition-transform duration-300" />
                         <span className="text-sm">Profile</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setProfileDropdownOpen(false);
-                        }}
-                        className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-all duration-300 hover:scale-105"
-                      >
-                        <Settings className="h-4 w-4 transition-transform duration-300" />
-                        <span className="text-sm">Settings</span>
                       </button>
                       <button
                         onClick={() => {
