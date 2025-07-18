@@ -247,27 +247,31 @@ const NewModernDashboard: React.FC = () => {
             <nav className="hidden lg:flex items-center space-x-8">
               {navigationCategories.map((category) => (
                 <div key={category.id} className="relative group">
-                  <button className="flex items-center space-x-1 px-3 py-2 text-gray-700 hover:text-gray-900 font-medium text-sm">
+                  <button className="flex items-center space-x-1 px-3 py-2 text-gray-700 hover:text-gray-900 font-medium text-sm transition-all duration-300 hover:scale-105">
                     <span>{category.label}</span>
-                    <ChevronDown className="h-4 w-4" />
+                    <ChevronDown className="h-4 w-4 transition-transform duration-300 group-hover:rotate-180" />
                   </button>
                   
                   {/* Dropdown */}
-                  <div className="absolute top-full left-0 w-64 bg-white rounded-xl shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 mt-2">
+                  <div className="absolute top-full left-0 w-64 bg-white rounded-xl shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-out transform scale-95 group-hover:scale-100 mt-2">
                     <div className="p-4">
                       <h3 className="font-semibold text-gray-900 mb-3 text-sm">{category.label}</h3>
                       <div className="grid grid-cols-2 gap-2">
-                        {category.items.map((item) => (
+                        {category.items.map((item, index) => (
                           <button
                             key={item.id}
                             onClick={() => setActiveTab(item.id)}
-                            className={`flex items-center space-x-3 p-3 rounded-lg text-left transition-colors ${
+                            className={`flex items-center space-x-3 p-3 rounded-lg text-left transition-all duration-300 hover:scale-105 hover:shadow-md ${
                               activeTab === item.id
-                                ? `${item.bgColor} ${item.color} border border-current`
+                                ? `${item.bgColor} ${item.color} border border-current transform scale-105 shadow-lg`
                                 : 'hover:bg-gray-50 text-gray-700'
                             }`}
+                            style={{
+                              animationDelay: `${index * 50}ms`,
+                              animation: 'fadeInUp 0.4s ease-out forwards'
+                            }}
                           >
-                            <item.icon className="h-4 w-4" />
+                            <item.icon className="h-4 w-4 transition-transform duration-300" />
                             <span className="text-xs font-medium">{item.label}</span>
                           </button>
                         ))}
@@ -293,9 +297,9 @@ const NewModernDashboard: React.FC = () => {
               </div>
               
               {/* Notifications */}
-              <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <Bell className="h-5 w-5 text-gray-600" />
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full flex items-center justify-center text-xs text-white">
+              <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-all duration-300 hover:scale-110">
+                <Bell className="h-5 w-5 text-gray-600 transition-transform duration-300" />
+                <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full flex items-center justify-center text-xs text-white animate-pulse">
                   3
                 </span>
               </button>
@@ -303,9 +307,11 @@ const NewModernDashboard: React.FC = () => {
               {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                className="p-2 rounded-lg hover:bg-gray-100 transition-all duration-300 hover:scale-110"
               >
-                {getThemeIcon()}
+                <div className="transition-transform duration-300">
+                  {getThemeIcon()}
+                </div>
               </button>
 
               {/* User Menu */}
@@ -326,20 +332,20 @@ const NewModernDashboard: React.FC = () => {
                 </button>
 
                 {/* User Dropdown */}
-                <div className="absolute top-full right-0 w-48 bg-white rounded-xl shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 mt-2">
+                <div className="absolute top-full right-0 w-48 bg-white rounded-xl shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-out transform scale-95 group-hover:scale-100 mt-2">
                   <div className="p-2">
                     <button
                       onClick={() => setActiveTab('settings')}
-                      className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700"
+                      className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-all duration-300 hover:scale-105"
                     >
-                      <Settings className="h-4 w-4" />
+                      <Settings className="h-4 w-4 transition-transform duration-300" />
                       <span className="text-sm">Settings</span>
                     </button>
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-red-50 text-red-600"
+                      className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-red-50 text-red-600 transition-all duration-300 hover:scale-105"
                     >
-                      <LogOut className="h-4 w-4" />
+                      <LogOut className="h-4 w-4 transition-transform duration-300" />
                       <span className="text-sm">Logout</span>
                     </button>
                   </div>
@@ -349,47 +355,60 @@ const NewModernDashboard: React.FC = () => {
               {/* Mobile Menu Button */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-all duration-300 hover:scale-105"
               >
-                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                <div className="transition-transform duration-300">
+                  {mobileMenuOpen ? <X className="h-5 w-5 transform rotate-90" /> : <Menu className="h-5 w-5" />}
+                </div>
               </button>
             </div>
           </div>
         </div>
 
         {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden bg-white border-t border-gray-200">
-            <div className="max-w-7xl mx-auto px-4 py-4">
-              {navigationCategories.map((category) => (
-                <div key={category.id} className="mb-6">
-                  <h3 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wider">
-                    {category.label}
-                  </h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {category.items.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          setActiveTab(item.id);
-                          setMobileMenuOpen(false);
-                        }}
-                        className={`flex items-center space-x-3 p-3 rounded-lg text-left transition-colors ${
-                          activeTab === item.id
-                            ? `${item.bgColor} ${item.color} border border-current`
-                            : 'hover:bg-gray-50 text-gray-700'
-                        }`}
-                      >
-                        <item.icon className="h-5 w-5" />
-                        <span className="text-sm font-medium">{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
+        <div className={`lg:hidden bg-white border-t border-gray-200 overflow-hidden transition-all duration-500 ease-out ${
+          mobileMenuOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
+        }`}>
+          <div className="max-w-7xl mx-auto px-4 py-4">
+            {navigationCategories.map((category, categoryIndex) => (
+              <div 
+                key={category.id} 
+                className="mb-6"
+                style={{
+                  animationDelay: `${categoryIndex * 100}ms`,
+                  animation: mobileMenuOpen ? 'slideInUp 0.6s ease-out forwards' : 'none'
+                }}
+              >
+                <h3 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wider">
+                  {category.label}
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {category.items.map((item, itemIndex) => (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setActiveTab(item.id);
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`flex items-center space-x-3 p-3 rounded-lg text-left transition-all duration-300 hover:scale-105 hover:shadow-md ${
+                        activeTab === item.id
+                          ? `${item.bgColor} ${item.color} border border-current transform scale-105 shadow-lg`
+                          : 'hover:bg-gray-50 text-gray-700'
+                      }`}
+                      style={{
+                        animationDelay: `${(categoryIndex * 100) + (itemIndex * 50)}ms`,
+                        animation: mobileMenuOpen ? 'slideInUp 0.6s ease-out forwards' : 'none'
+                      }}
+                    >
+                      <item.icon className="h-5 w-5 transition-transform duration-300" />
+                      <span className="text-sm font-medium">{item.label}</span>
+                    </button>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-        )}
+        </div>
       </header>
 
       {/* Breadcrumb */}
@@ -420,8 +439,11 @@ const NewModernDashboard: React.FC = () => {
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden transition-opacity duration-300"
           onClick={() => setMobileMenuOpen(false)}
+          style={{
+            animation: 'fadeIn 0.3s ease-out'
+          }}
         />
       )}
     </div>
@@ -567,10 +589,10 @@ const DashboardHome: React.FC<{ userProgress: UserProgress | null; onTabChange: 
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-300 hover:scale-105 stagger-animation">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-blue-100 rounded-xl">
-              <BookOpen className="h-6 w-6 text-blue-600" />
+            <div className="p-3 bg-blue-100 rounded-xl transition-all duration-300 hover:scale-110">
+              <BookOpen className="h-6 w-6 text-blue-600 transition-transform duration-300" />
             </div>
             <div className="text-right">
               <div className="text-sm text-green-600 font-medium">+5 today</div>
@@ -582,10 +604,10 @@ const DashboardHome: React.FC<{ userProgress: UserProgress | null; onTabChange: 
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-300 hover:scale-105 stagger-animation">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-green-100 rounded-xl">
-              <Globe className="h-6 w-6 text-green-600" />
+            <div className="p-3 bg-green-100 rounded-xl transition-all duration-300 hover:scale-110">
+              <Globe className="h-6 w-6 text-green-600 transition-transform duration-300" />
             </div>
             <div className="text-right">
               <div className="text-sm text-green-600 font-medium">+3 today</div>
@@ -597,10 +619,10 @@ const DashboardHome: React.FC<{ userProgress: UserProgress | null; onTabChange: 
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-300 hover:scale-105 stagger-animation">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-purple-100 rounded-xl">
-              <GraduationCap className="h-6 w-6 text-purple-600" />
+            <div className="p-3 bg-purple-100 rounded-xl transition-all duration-300 hover:scale-110">
+              <GraduationCap className="h-6 w-6 text-purple-600 transition-transform duration-300" />
             </div>
             <div className="text-right">
               <div className="text-sm text-green-600 font-medium">+12 today</div>
@@ -612,10 +634,10 @@ const DashboardHome: React.FC<{ userProgress: UserProgress | null; onTabChange: 
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-300 hover:scale-105 stagger-animation">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-orange-100 rounded-xl">
-              <Flame className="h-6 w-6 text-orange-600" />
+            <div className="p-3 bg-orange-100 rounded-xl transition-all duration-300 hover:scale-110">
+              <Flame className="h-6 w-6 text-orange-600 transition-transform duration-300 icon-bounce" />
             </div>
             <div className="text-right">
               <div className="text-sm text-orange-600 font-medium">🔥</div>
@@ -639,10 +661,14 @@ const DashboardHome: React.FC<{ userProgress: UserProgress | null; onTabChange: 
             <button
               key={index}
               onClick={() => onTabChange(action.tab)}
-              className="group flex flex-col items-center p-4 rounded-xl hover:bg-gray-50 transition-all duration-200 hover:scale-105"
+              className="group flex flex-col items-center p-4 rounded-xl hover:bg-gray-50 transition-all duration-300 hover:scale-105 micro-bounce"
+              style={{
+                animationDelay: `${index * 100}ms`,
+                animation: 'slideInUp 0.6s ease-out forwards'
+              }}
             >
-              <div className={`p-3 rounded-xl bg-gradient-to-r ${action.color} mb-3 group-hover:scale-110 transition-transform shadow-lg`}>
-                <action.icon className="h-6 w-6 text-white" />
+              <div className={`p-3 rounded-xl bg-gradient-to-r ${action.color} mb-3 group-hover:scale-110 transition-all duration-300 shadow-lg gradient-animation`}>
+                <action.icon className="h-6 w-6 text-white transition-transform duration-300" />
               </div>
               <span className="text-sm font-medium text-gray-900 text-center mb-1">{action.label}</span>
               <span className="text-xs text-gray-500 text-center">{action.description}</span>
@@ -664,11 +690,15 @@ const DashboardHome: React.FC<{ userProgress: UserProgress | null; onTabChange: 
               <button
                 key={index}
                 onClick={() => onTabChange(lesson.tab)}
-                className="w-full group p-4 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all"
+                className="w-full group p-4 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-300 hover:scale-105 micro-bounce"
+                style={{
+                  animationDelay: `${index * 150}ms`,
+                  animation: 'slideInUp 0.6s ease-out forwards'
+                }}
               >
                 <div className="flex items-center space-x-4">
-                  <div className={`p-3 rounded-xl bg-gradient-to-r ${lesson.color} group-hover:scale-110 transition-transform`}>
-                    <lesson.icon className="h-6 w-6 text-white" />
+                  <div className={`p-3 rounded-xl bg-gradient-to-r ${lesson.color} group-hover:scale-110 transition-all duration-300 gradient-animation`}>
+                    <lesson.icon className="h-6 w-6 text-white transition-transform duration-300" />
                   </div>
                   <div className="flex-1 text-left">
                     <h4 className="font-semibold text-gray-900 mb-1">{lesson.title}</h4>
@@ -676,8 +706,11 @@ const DashboardHome: React.FC<{ userProgress: UserProgress | null; onTabChange: 
                     <div className="flex items-center space-x-2">
                       <div className="flex-1 bg-gray-200 rounded-full h-2">
                         <div
-                          className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all"
-                          style={{ width: `${lesson.progress}%` }}
+                          className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500 ease-out"
+                          style={{ 
+                            width: `${lesson.progress}%`,
+                            animation: 'scaleIn 0.8s ease-out forwards'
+                          }}
                         ></div>
                       </div>
                       <span className="text-xs text-gray-500">{lesson.progress}%</span>
@@ -690,32 +723,32 @@ const DashboardHome: React.FC<{ userProgress: UserProgress | null; onTabChange: 
         </div>
 
         {/* AI Chat */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 stagger-animation">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-semibold text-gray-900">AI Assistant</h3>
-            <Brain className="h-5 w-5 text-purple-600" />
+            <Brain className="h-5 w-5 text-purple-600 transition-transform duration-300 hover:scale-110" />
           </div>
           <div className="bg-gray-50 rounded-xl p-4 mb-4 max-h-64 overflow-y-auto">
             {chatHistory.length === 0 ? (
               <div className="text-center py-8">
-                <Coffee className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <Coffee className="h-12 w-12 text-gray-400 mx-auto mb-4 transition-transform duration-300 hover:scale-110" />
                 <p className="text-gray-500 mb-4">Tanyakan sesuatu tentang bahasa Jepang!</p>
                 <div className="flex flex-wrap gap-2 justify-center">
                   <button 
                     onClick={() => setChatInput('Apa itu hiragana?')}
-                    className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm hover:bg-blue-200 transition-colors"
+                    className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm hover:bg-blue-200 transition-all duration-300 hover:scale-105 micro-bounce"
                   >
                     Apa itu hiragana?
                   </button>
                   <button 
                     onClick={() => setChatInput('Bagaimana cara belajar kanji?')}
-                    className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm hover:bg-green-200 transition-colors"
+                    className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm hover:bg-green-200 transition-all duration-300 hover:scale-105 micro-bounce"
                   >
                     Cara belajar kanji
                   </button>
                   <button 
                     onClick={() => setChatInput('Tips lulus JLPT N3?')}
-                    className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm hover:bg-purple-200 transition-colors"
+                    className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm hover:bg-purple-200 transition-all duration-300 hover:scale-105 micro-bounce"
                   >
                     Tips JLPT N3
                   </button>
@@ -725,11 +758,15 @@ const DashboardHome: React.FC<{ userProgress: UserProgress | null; onTabChange: 
               <div className="space-y-3">
                 {chatHistory.map((msg, idx) => (
                   <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-xl ${
+                    <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-xl transition-all duration-300 hover:scale-105 ${
                       msg.role === 'user' 
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white' 
-                        : 'bg-white border border-gray-200 text-gray-900 shadow-sm'
-                    }`}>
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white gradient-animation' 
+                        : 'bg-white border border-gray-200 text-gray-900 shadow-sm hover:shadow-md'
+                    }`}
+                    style={{
+                      animation: 'slideInUp 0.4s ease-out forwards',
+                      animationDelay: `${idx * 100}ms`
+                    }}>
                       {msg.content}
                     </div>
                   </div>
@@ -755,7 +792,7 @@ const DashboardHome: React.FC<{ userProgress: UserProgress | null; onTabChange: 
             <button
               type="submit"
               disabled={!chatInput.trim() || chatLoading}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 micro-bounce gradient-animation"
             >
               {chatLoading ? <LoadingSpinner size="sm" /> : 'Send'}
             </button>
