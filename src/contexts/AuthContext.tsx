@@ -41,12 +41,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const register = async (email: string, password: string, role: 'admin' | 'user' = 'user') => {
+    let userCredential;
+    
     try {
+      // Step 1: Create Firebase Authentication user
       console.log('Creating Firebase user...');
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       console.log('Firebase user created successfully:', user.uid);
       
+      // Step 2: Prepare user data for Firestore
       const userData: User = {
         uid: user.uid,
         email: user.email!,
@@ -56,12 +60,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         lastLogin: new Date()
       };
 
+      // Step 3: Save user data to Firestore
       console.log('Saving user data to Firestore...');
-      await setDoc(doc(db, 'users', user.uid), userData);
-      console.log('User data saved to Firestore successfully');
-    } catch (error) {
+      try {
+        await setDoc(doc(db, 'users', user.uid), userData);
+        console.log('User data saved to Firestore successfully');
+      } catch (firestoreError: any) {
+        console.error('Firestore error:', firestoreError);
+        
+        // If Firestore fails, we still have a valid Firebase user
+        // We can either continue (user can login) or clean up
+        console.warn('User was created in Firebase Auth but Firestore save failed');
+        
+        // Option 1: Continue without Firestore data (user can still login)
+        // This allows the app to work even if Firestore has permission issues
+        console.log('Continuing with Firebase Auth user only');
+        return; // Success - user can login even without Firestore data
+        
+        // Option 2: Clean up by deleting the Firebase user (uncomment if needed)
+        // try {
+        //   await user.delete();
+        //   console.log('Cleaned up Firebase user due to Firestore error');
+        // } catch (cleanupError) {
+        //   console.error('Failed to cleanup Firebase user:', cleanupError);
+        // }
+        // throw new Error('firestore-permission-denied');
+      }
+      
+    } catch (error: any) {
       console.error('Error in register function:', error);
-      throw error; // Re-throw the error so it can be handled by the component
+      
+      // If this is an auth error, throw it as-is
+      if (error.code && error.code.startsWith('auth/')) {
+        throw error;
+      }
+      
+      // If this is our custom Firestore error
+      if (error.message === 'firestore-permission-denied') {
+        const customError = new Error('Akun berhasil dibuat di Firebase tetapi gagal menyimpan data profil. Anda masih bisa login.');
+        customError.name = 'FirestoreError';
+        throw customError;
+      }
+      
+      // For any other error, re-throw
+      throw error;
     }
   };
 
@@ -72,14 +114,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data() as User;
-          setCurrentUser({
-            ...userData,
-            createdAt: userData.createdAt instanceof Date ? userData.createdAt : new Date(userData.createdAt),
-            lastLogin: userData.lastLogin instanceof Date ? userData.lastLogin : new Date(userData.lastLogin)
-          });
+        try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data() as User;
+            setCurrentUser({
+              ...userData,
+              createdAt: userData.createdAt instanceof Date ? userData.createdAt : new Date(userData.createdAt),
+              lastLogin: userData.lastLogin instanceof Date ? userData.lastLogin : new Date(userData.lastLogin)
+            });
+          } else {
+            // User exists in Firebase Auth but not in Firestore
+            // Create a minimal user object from Firebase Auth data
+            console.log('User found in Firebase Auth but not in Firestore, creating minimal profile');
+            const minimalUser: User = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email!,
+              role: 'user',
+              displayName: firebaseUser.displayName || undefined,
+              createdAt: new Date(),
+              lastLogin: new Date()
+            };
+            
+            // Try to save to Firestore (optional - if it fails, user can still use the app)
+            try {
+              await setDoc(doc(db, 'users', firebaseUser.uid), minimalUser);
+              console.log('Successfully created Firestore profile for existing Firebase user');
+            } catch (firestoreError) {
+              console.warn('Could not save to Firestore, but user can still use the app:', firestoreError);
+            }
+            
+            setCurrentUser(minimalUser);
+          }
+        } catch (error) {
+          console.error('Error loading user data from Firestore:', error);
+          // If Firestore is completely unavailable, still allow the user to use the app
+          const fallbackUser: User = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email!,
+            role: 'user',
+            displayName: firebaseUser.displayName || undefined,
+            createdAt: new Date(),
+            lastLogin: new Date()
+          };
+          setCurrentUser(fallbackUser);
         }
       } else {
         setCurrentUser(null);

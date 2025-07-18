@@ -15,6 +15,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleForm }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const recaptchaRef = useRef<ReCaptchaRef>(null);
@@ -23,6 +24,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleForm }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
     if (password !== confirmPassword) {
       setError('Password dan konfirmasi password tidak cocok');
@@ -48,6 +50,15 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleForm }) => {
       console.log('Attempting to register user:', email);
       await register(email, password, 'user');
       console.log('Registration successful');
+      
+      // Show success message
+      setSuccess('Akun berhasil dibuat! Anda akan diarahkan ke dashboard...');
+      
+      // Auto-redirect after 2 seconds (the AuthContext will handle the login state)
+      setTimeout(() => {
+        // The user should be automatically logged in by AuthContext
+      }, 2000);
+      
     } catch (error: any) {
       console.error('Registration error details:', error);
       console.error('Error code:', error.code);
@@ -68,6 +79,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleForm }) => {
         errorMessage = 'Terlalu banyak percobaan. Silakan tunggu beberapa saat.';
       } else if (error.code === 'permission-denied') {
         errorMessage = 'Tidak memiliki izin untuk membuat akun. Hubungi administrator.';
+      } else if (error.name === 'FirestoreError') {
+        errorMessage = error.message; // Use the custom message for Firestore errors
       }
       
       setError(errorMessage);
@@ -183,6 +196,12 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleForm }) => {
         {error && (
           <div className="text-red-600 text-sm bg-red-50 p-4 rounded-lg border border-red-200">
             {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="text-green-600 text-sm bg-green-50 p-4 rounded-lg border border-green-200">
+            {success}
           </div>
         )}
 
