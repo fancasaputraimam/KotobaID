@@ -36,11 +36,14 @@ export class StudyToolsService {
       };
     } catch (error) {
       console.error('Error searching dictionary:', error);
+      
+      // Return fallback data even on error
+      const fallbackData = await firestoreService.getDictionaryEntries(query, filters, page, limit);
       return {
-        entries: [],
-        total: 0,
-        page: 1,
-        limit: 20,
+        entries: fallbackData.entries,
+        total: fallbackData.total,
+        page,
+        limit,
         suggestions: [],
         relatedTerms: []
       };

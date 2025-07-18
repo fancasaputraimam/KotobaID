@@ -702,6 +702,193 @@ class FirestoreService {
         source: 'internal',
         createdAt: new Date(),
         updatedAt: new Date()
+      },
+      {
+        id: 'fallback_6',
+        word: 'ありがとう',
+        reading: 'ありがとう',
+        meanings: [
+          {
+            id: 'meaning_6',
+            definition: 'Thank you',
+            indonesian: 'Terima kasih',
+            english: 'Thank you',
+            context: 'gratitude expression'
+          }
+        ],
+        partOfSpeech: ['interjection'],
+        jlptLevel: 'N5',
+        frequency: 5,
+        examples: [
+          {
+            id: 'example_6',
+            japanese: 'ありがとうございます。',
+            reading: 'ありがとうございます。',
+            indonesian: 'Terima kasih.',
+            english: 'Thank you.',
+            difficulty: 'beginner',
+            source: 'polite expressions',
+            tags: ['gratitude', 'polite']
+          }
+        ],
+        tags: ['gratitude', 'common', 'polite'],
+        source: 'internal',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'fallback_7',
+        word: '水',
+        reading: 'みず',
+        meanings: [
+          {
+            id: 'meaning_7',
+            definition: 'Water',
+            indonesian: 'Air',
+            english: 'Water',
+            context: 'basic necessity'
+          }
+        ],
+        partOfSpeech: ['noun'],
+        jlptLevel: 'N5',
+        frequency: 4,
+        examples: [
+          {
+            id: 'example_7',
+            japanese: '水を飲みます。',
+            reading: 'みずをのみます。',
+            indonesian: 'Saya minum air.',
+            english: 'I drink water.',
+            difficulty: 'beginner',
+            source: 'daily activities',
+            tags: ['drink', 'daily']
+          }
+        ],
+        kanji: [
+          {
+            character: '水',
+            meaning: 'water',
+            onyomi: ['スイ'],
+            kunyomi: ['みず'],
+            strokeCount: 4,
+            jlptLevel: 'N5',
+            frequency: 4
+          }
+        ],
+        tags: ['water', 'daily', 'basic'],
+        source: 'internal',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'fallback_8',
+        word: 'すみません',
+        reading: 'すみません',
+        meanings: [
+          {
+            id: 'meaning_8',
+            definition: 'Excuse me, sorry',
+            indonesian: 'Maaf, permisi',
+            english: 'Excuse me, sorry',
+            context: 'apology and attention getting'
+          }
+        ],
+        partOfSpeech: ['interjection'],
+        jlptLevel: 'N5',
+        frequency: 5,
+        examples: [
+          {
+            id: 'example_8',
+            japanese: 'すみません、駅はどこですか。',
+            reading: 'すみません、えきはどこですか。',
+            indonesian: 'Permisi, di mana stasiun?',
+            english: 'Excuse me, where is the station?',
+            difficulty: 'beginner',
+            source: 'asking directions',
+            tags: ['question', 'polite']
+          }
+        ],
+        tags: ['apology', 'polite', 'common'],
+        source: 'internal',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'fallback_9',
+        word: 'おはよう',
+        reading: 'おはよう',
+        meanings: [
+          {
+            id: 'meaning_9',
+            definition: 'Good morning (casual)',
+            indonesian: 'Selamat pagi',
+            english: 'Good morning',
+            context: 'morning greeting'
+          }
+        ],
+        partOfSpeech: ['interjection'],
+        jlptLevel: 'N5',
+        frequency: 5,
+        examples: [
+          {
+            id: 'example_9',
+            japanese: 'おはようございます。',
+            reading: 'おはようございます。',
+            indonesian: 'Selamat pagi.',
+            english: 'Good morning.',
+            difficulty: 'beginner',
+            source: 'morning greetings',
+            tags: ['greeting', 'morning']
+          }
+        ],
+        tags: ['greeting', 'morning', 'common'],
+        source: 'internal',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'fallback_10',
+        word: '本',
+        reading: 'ほん',
+        meanings: [
+          {
+            id: 'meaning_10',
+            definition: 'Book',
+            indonesian: 'Buku',
+            english: 'Book',
+            context: 'reading material'
+          }
+        ],
+        partOfSpeech: ['noun'],
+        jlptLevel: 'N5',
+        frequency: 4,
+        examples: [
+          {
+            id: 'example_10',
+            japanese: 'この本は面白いです。',
+            reading: 'このほんはおもしろいです。',
+            indonesian: 'Buku ini menarik.',
+            english: 'This book is interesting.',
+            difficulty: 'beginner',
+            source: 'reading activities',
+            tags: ['reading', 'study']
+          }
+        ],
+        kanji: [
+          {
+            character: '本',
+            meaning: 'book, origin',
+            onyomi: ['ホン'],
+            kunyomi: ['もと'],
+            strokeCount: 5,
+            jlptLevel: 'N5',
+            frequency: 5
+          }
+        ],
+        tags: ['book', 'study', 'reading'],
+        source: 'internal',
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
     ];
 
@@ -711,7 +898,7 @@ class FirestoreService {
     }
     
     const query = searchQuery.toLowerCase();
-    return fallbackData.filter(entry => 
+    const filtered = fallbackData.filter(entry => 
       entry.word.toLowerCase().includes(query) ||
       entry.reading.toLowerCase().includes(query) ||
       entry.meanings.some(meaning => 
@@ -719,6 +906,10 @@ class FirestoreService {
         meaning.definition.toLowerCase().includes(query)
       )
     );
+    
+    // If no matches found, return all fallback data to show something
+    const result = filtered.length > 0 ? filtered : fallbackData;
+    return result;
   }
 }
 
