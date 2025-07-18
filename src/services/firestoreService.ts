@@ -312,8 +312,23 @@ class FirestoreService {
         );
       });
 
-      // If no results found, use fallback data
+      // If no results found, try AI search first before fallback
       if (filteredEntries.length === 0 && searchQuery) {
+        console.log('No results found in Firestore, trying AI search for:', searchQuery);
+        
+        // Import StudyToolsService dynamically to avoid circular dependency
+        const { StudyToolsService } = await import('./studyToolsService');
+        const aiResults = await StudyToolsService.searchWithAI(searchQuery);
+        
+        if (aiResults.length > 0) {
+          console.log('AI search found', aiResults.length, 'results');
+          return {
+            entries: aiResults,
+            total: aiResults.length
+          };
+        }
+        
+        // If AI search also fails, use fallback data
         const fallbackEntries = this.getFallbackDictionaryEntries(searchQuery);
         return {
           entries: fallbackEntries,
@@ -327,8 +342,24 @@ class FirestoreService {
       };
     } catch (error) {
       console.error('Error getting dictionary entries:', error);
-      // Return fallback data on error
+      // Try AI search on error as well
       if (searchQuery) {
+        try {
+          const { StudyToolsService } = await import('./studyToolsService');
+          const aiResults = await StudyToolsService.searchWithAI(searchQuery);
+          
+          if (aiResults.length > 0) {
+            console.log('AI search found', aiResults.length, 'results after error');
+            return {
+              entries: aiResults,
+              total: aiResults.length
+            };
+          }
+        } catch (aiError) {
+          console.error('AI search also failed:', aiError);
+        }
+        
+        // Return fallback data if AI search fails
         const fallbackEntries = this.getFallbackDictionaryEntries(searchQuery);
         return {
           entries: fallbackEntries,

@@ -658,6 +658,175 @@ export class StudyToolsService {
     }
   }
 
+  // AI Dictionary Lookup when word not found in database
+  static async searchWithAI(query: string): Promise<DictionaryEntry[]> {
+    try {
+      console.log('Searching with AI for:', query);
+      
+      const prompt = `
+        Search for the Japanese word or phrase "${query}" and provide comprehensive dictionary information.
+        
+        If the query is in Indonesian, find the Japanese equivalent.
+        If the query is in Japanese, provide the details.
+        If the query is in English, find the Japanese equivalent.
+        
+        Please provide detailed information in this JSON format:
+        {
+          "entries": [
+            {
+              "word": "Japanese word (kanji/hiragana)",
+              "reading": "hiragana/katakana reading",
+              "meanings": [
+                {
+                  "indonesian": "Indonesian translation",
+                  "definition": "English definition",
+                  "context": "usage context"
+                }
+              ],
+              "partOfSpeech": ["noun", "verb", "adjective", etc.],
+              "jlptLevel": "N5, N4, N3, N2, N1, or null",
+              "frequency": 1-5,
+              "examples": [
+                {
+                  "japanese": "Example sentence in Japanese",
+                  "reading": "Reading of the sentence",
+                  "indonesian": "Indonesian translation",
+                  "english": "English translation"
+                }
+              ],
+              "kanji": [
+                {
+                  "character": "kanji character",
+                  "meaning": "meaning of kanji",
+                  "onyomi": ["on readings"],
+                  "kunyomi": ["kun readings"],
+                  "strokeCount": number
+                }
+              ],
+              "tags": ["relevant tags"]
+            }
+          ]
+        }
+        
+        Return only valid dictionary entries that match the query. If no match found, return empty entries array.
+      `;
+
+      const response = await azureOpenAI.getChatResponse([
+        { role: 'user', content: prompt }
+      ]);
+
+      try {
+        const parsed = JSON.parse(response);
+        if (parsed.entries && Array.isArray(parsed.entries)) {
+          return parsed.entries.map((entry: any, index: number) => ({
+            id: `ai_${Date.now()}_${index}`,
+            word: entry.word || '',
+            reading: entry.reading || entry.word || '',
+            meanings: entry.meanings?.map((meaning: any, idx: number) => ({
+              id: `ai_meaning_${index}_${idx}`,
+              definition: meaning.definition || '',
+              indonesian: meaning.indonesian || '',
+              english: meaning.english || meaning.definition || '',
+              context: meaning.context || ''
+            })) || [],
+            partOfSpeech: entry.partOfSpeech || ['unknown'],
+            jlptLevel: entry.jlptLevel || undefined,
+            frequency: entry.frequency || 3,
+            examples: entry.examples?.map((example: any, idx: number) => ({
+              id: `ai_example_${index}_${idx}`,
+              japanese: example.japanese || '',
+              reading: example.reading || example.japanese || '',
+              indonesian: example.indonesian || '',
+              english: example.english || '',
+              difficulty: 'intermediate' as const,
+              source: 'AI Generated',
+              tags: ['ai-generated']
+            })) || [],
+            kanji: entry.kanji?.map((kanji: any) => ({
+              character: kanji.character || '',
+              meaning: kanji.meaning || '',
+              onyomi: kanji.onyomi || [],
+              kunyomi: kanji.kunyomi || [],
+              strokeCount: kanji.strokeCount || 0,
+              jlptLevel: kanji.jlptLevel || undefined,
+              frequency: kanji.frequency || 3
+            })) || [],
+            tags: [...(entry.tags || []), 'ai-generated'],
+            source: 'ai-generated' as const,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }));
+        }
+      } catch (parseError) {
+        console.error('Error parsing AI dictionary response:', parseError);
+        
+        // Try to extract basic info from non-JSON response
+        const lines = response.split('\n');
+        const basicEntry = this.extractBasicEntryFromText(query, response);
+        return basicEntry ? [basicEntry] : [];
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error in AI dictionary search:', error);
+      return [];
+    }
+  }
+
+  // Helper method to extract basic dictionary entry from text response
+  private static extractBasicEntryFromText(query: string, response: string): DictionaryEntry | null {
+    try {
+      // Simple text parsing for basic info
+      const lines = response.split('\n').filter(line => line.trim());
+      
+      let word = '';
+      let reading = '';
+      let indonesian = '';
+      let english = '';
+      
+      for (const line of lines) {
+        const lowerLine = line.toLowerCase();
+        
+        if (lowerLine.includes('word') || lowerLine.includes('kata')) {
+          word = line.replace(/.*[:=]\s*/, '').trim();
+        } else if (lowerLine.includes('reading') || lowerLine.includes('baca')) {
+          reading = line.replace(/.*[:=]\s*/, '').trim();
+        } else if (lowerLine.includes('indonesian') || lowerLine.includes('indonesia')) {
+          indonesian = line.replace(/.*[:=]\s*/, '').trim();
+        } else if (lowerLine.includes('english') || lowerLine.includes('inggris')) {
+          english = line.replace(/.*[:=]\s*/, '').trim();
+        }
+      }
+      
+      if (word && (indonesian || english)) {
+        return {
+          id: `ai_basic_${Date.now()}`,
+          word: word,
+          reading: reading || word,
+          meanings: [{
+            id: `ai_meaning_basic`,
+            definition: english || indonesian,
+            indonesian: indonesian || english,
+            english: english || indonesian,
+            context: 'AI generated'
+          }],
+          partOfSpeech: ['unknown'],
+          frequency: 3,
+          examples: [],
+          tags: ['ai-generated', 'basic-extraction'],
+          source: 'ai-generated' as const,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error extracting basic entry:', error);
+      return null;
+    }
+  }
+
   // Get conjugations for verbs
   static async getConjugations(verb: string): Promise<any[]> {
     // Simplified conjugation system
