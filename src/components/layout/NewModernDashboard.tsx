@@ -54,8 +54,6 @@ import QuizAIPage from '../learning/QuizAIPage';
 import ExampleAIPage from '../learning/ExampleAIPage';
 import JLPTAIPage from '../learning/JLPTAIPage';
 import KanjiSearchPage from '../learning/KanjiSearchPage';
-import FlashcardStudy from '../flashcard/FlashcardStudy';
-import FlashcardManager from '../flashcard/FlashcardManager';
 import WritingPractice from '../writing/WritingPractice';
 import ListeningPractice from '../audio/ListeningPractice';
 import ReadingComprehension from '../reading/ReadingComprehension';
@@ -90,7 +88,6 @@ const NewModernDashboard: React.FC = () => {
       label: 'Learning',
       items: [
         { id: 'study-tools', label: 'Study Tools', icon: Search, color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
-        { id: 'flashcard-study', label: 'Flashcards', icon: Layers, color: 'text-pink-600', bgColor: 'bg-pink-50' },
         { id: 'writing', label: 'Writing', icon: Edit3, color: 'text-orange-600', bgColor: 'bg-orange-50' },
         { id: 'audio', label: 'Audio', icon: Volume2, color: 'text-red-600', bgColor: 'bg-red-50' },
         { id: 'reading', label: 'Reading', icon: FileText, color: 'text-teal-600', bgColor: 'bg-teal-50' },
@@ -113,7 +110,6 @@ const NewModernDashboard: React.FC = () => {
         { id: 'example', label: 'AI Examples', icon: Zap, color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
         { id: 'jlpt', label: 'JLPT Prep', icon: Trophy, color: 'text-pink-600', bgColor: 'bg-pink-50' },
         { id: 'kanji-search', label: 'Kanji Search', icon: Search, color: 'text-orange-600', bgColor: 'bg-orange-50' },
-        { id: 'flashcard-manager', label: 'Manage Cards', icon: Target, color: 'text-red-600', bgColor: 'bg-red-50' },
         { id: 'settings', label: 'Settings', icon: Settings, color: 'text-gray-600', bgColor: 'bg-gray-50' },
       ]
     }
@@ -201,8 +197,6 @@ const NewModernDashboard: React.FC = () => {
         return <DashboardHome userProgress={userProgress} onTabChange={setActiveTab} />;
       case 'study-tools':
         return <StudyTools />;
-      case 'flashcard-study':
-        return <FlashcardStudy />;
       case 'writing':
         return <WritingPractice />;
       case 'audio':
@@ -223,8 +217,6 @@ const NewModernDashboard: React.FC = () => {
         return <JLPTAIPage />;
       case 'kanji-search':
         return <KanjiSearchPage />;
-      case 'flashcard-manager':
-        return <FlashcardManager />;
       case 'settings':
         return <Settings />;
       case 'profile':
