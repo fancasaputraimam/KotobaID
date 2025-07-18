@@ -119,6 +119,7 @@ const NewModernDashboard: React.FC = () => {
         { id: 'jlpt', label: 'JLPT Prep', icon: Trophy, color: 'text-pink-600', bgColor: 'bg-pink-50' },
         { id: 'kanji-search', label: 'Kanji Search', icon: Search, color: 'text-orange-600', bgColor: 'bg-orange-50' },
         { id: 'flashcard-manager', label: 'Manage Cards', icon: Target, color: 'text-red-600', bgColor: 'bg-red-50' },
+        { id: 'settings', label: 'Settings', icon: Settings, color: 'text-gray-600', bgColor: 'bg-gray-50' },
       ]
     }
   ];
@@ -373,7 +374,6 @@ const NewModernDashboard: React.FC = () => {
                       </button>
                       <button
                         onClick={() => {
-                          setActiveTab('settings');
                           setProfileDropdownOpen(false);
                         }}
                         className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-all duration-300 hover:scale-105"
