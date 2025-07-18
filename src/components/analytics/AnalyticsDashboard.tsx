@@ -1,532 +1,654 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { LearningAnalytics } from '../../types/analytics';
-import { AnalyticsService } from '../../services/analyticsService';
+import { firestoreService } from '../../services/firestoreService';
+import { UserProgress } from '../../types';
 import { 
+  PieChart, 
+  BarChart3, 
   TrendingUp, 
-  Clock, 
-  Target, 
-  Award, 
-  Brain,
-  BarChart3,
+  TrendingDown,
   Calendar,
-  Zap,
-  AlertTriangle,
-  CheckCircle,
-  ArrowUp,
-  ArrowDown,
-  Star,
+  Clock,
+  Target,
   BookOpen,
-  Headphones,
+  Globe,
+  GraduationCap,
+  Activity,
+  Brain,
+  Trophy,
+  Eye,
   Edit3,
-  FileText
+  Headphones,
+  AlertCircle,
+  RefreshCw,
+  Download,
+  ArrowUp,
 } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 
+interface AnalyticsData {
+  totalStudyTime: number;
+  totalSessions: number;
+  averageSessionTime: number;
+  strongestArea: string;
+  weakestArea: string;
+  improvementRate: number;
+  consistencyScore: number;
+  retentionRate: number;
+}
+
+interface CategoryStats {
+  category: string;
+  totalTime: number;
+  sessionsCount: number;
+  averageScore: number;
+  progressRate: number;
+  lastStudied: string;
+}
+
+interface TimeDistribution {
+  hour: number;
+  minutes: number;
+  sessions: number;
+}
+
+interface DifficultyAnalysis {
+  level: string;
+  accuracy: number;
+  timeSpent: number;
+  improvements: string[];
+}
+
+interface LearningTrend {
+  date: string;
+  studyTime: number;
+  itemsLearned: number;
+  accuracy: number;
+}
+
 const AnalyticsDashboard: React.FC = () => {
   const { currentUser } = useAuth();
-  const [analytics, setAnalytics] = useState<LearningAnalytics | null>(null);
+  const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [categoryStats, setCategoryStats] = useState<CategoryStats[]>([]);
+  const [timeDistribution, setTimeDistribution] = useState<TimeDistribution[]>([]);
+  const [difficultyAnalysis, setDifficultyAnalysis] = useState<DifficultyAnalysis[]>([]);
+  const [learningTrends, setLearningTrends] = useState<LearningTrend[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTimeRange, setSelectedTimeRange] = useState<'week' | 'month' | 'all'>('month');
-  const [selectedMetric, setSelectedMetric] = useState<'accuracy' | 'time' | 'activities'>('accuracy');
+  const [selectedTimeRange, setSelectedTimeRange] = useState<'7days' | '30days' | '90days' | 'all'>('30days');
+  const [selectedMetric, setSelectedMetric] = useState<'time' | 'accuracy' | 'progress'>('time');
 
   useEffect(() => {
-    loadAnalytics();
-  }, [currentUser]);
+    loadAnalyticsData();
+  }, [currentUser, selectedTimeRange]);
 
-  const loadAnalytics = async () => {
+  const loadAnalyticsData = async () => {
     if (!currentUser) return;
 
     try {
       setLoading(true);
-      const analyticsData = await AnalyticsService.generateLearningAnalytics(currentUser.uid);
-      setAnalytics(analyticsData);
+      
+      // Load user progress
+      const progress = await firestoreService.getUserProgress(currentUser.uid);
+      setUserProgress(progress);
+
+      // Generate analytics data
+      const analytics = generateAnalyticsData(progress);
+      setAnalyticsData(analytics);
+
+      // Generate category stats
+      const categoryData = generateCategoryStats(progress);
+      setCategoryStats(categoryData);
+
+      // Generate time distribution
+      const timeData = generateTimeDistribution();
+      setTimeDistribution(timeData);
+
+      // Generate difficulty analysis
+      const difficultyData = generateDifficultyAnalysis();
+      setDifficultyAnalysis(difficultyData);
+
+      // Generate learning trends
+      const trendsData = generateLearningTrends();
+      setLearningTrends(trendsData);
+
     } catch (error) {
-      console.error('Error loading analytics:', error);
+      console.error('Error loading analytics data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
+  const generateAnalyticsData = (progress: UserProgress | null): AnalyticsData => {
+    if (!progress) {
+      return {
+        totalStudyTime: 0,
+        totalSessions: 0,
+        averageSessionTime: 0,
+        strongestArea: 'None',
+        weakestArea: 'None',
+        improvementRate: 0,
+        consistencyScore: 0,
+        retentionRate: 0
+      };
+    }
 
-  if (!analytics) {
-    return (
-      <div className="max-w-4xl mx-auto p-6 text-center">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
-          <BarChart3 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Data Analytics Tidak Tersedia</h3>
-          <p className="text-gray-600">Mulai belajar untuk melihat analytics Anda!</p>
-        </div>
-      </div>
-    );
-  }
+    const kanjiLearned = Object.values(progress.kanjiProgress).filter(p => p.learned).length;
+    const grammarLearned = Object.values(progress.grammarProgress).filter(p => p.learned).length;
+    const vocabularyLearned = Object.values(progress.vocabularyProgress).filter(p => p.learned).length;
 
-  const { overview, skillBreakdown, timeAnalytics, performanceMetrics, recommendations, streakAnalytics, weaknessAnalysis } = analytics;
+    // Determine strongest and weakest areas
+    const areas = [
+      { name: 'Kanji', score: kanjiLearned },
+      { name: 'Grammar', score: grammarLearned },
+      { name: 'Vocabulary', score: vocabularyLearned }
+    ];
 
-  const getSkillIcon = (skill: string) => {
-    switch (skill) {
-      case 'kanji': return <BookOpen className="h-5 w-5" />;
-      case 'listening': return <Headphones className="h-5 w-5" />;
-      case 'writing': return <Edit3 className="h-5 w-5" />;
-      case 'reading': return <FileText className="h-5 w-5" />;
-      default: return <Brain className="h-5 w-5" />;
+    const strongest = areas.reduce((max, area) => area.score > max.score ? area : max);
+    const weakest = areas.reduce((min, area) => area.score < min.score ? area : min);
+
+    return {
+      totalStudyTime: Math.floor(Math.random() * 500 + 100), // Mock data
+      totalSessions: Math.floor(Math.random() * 50 + 20),
+      averageSessionTime: Math.floor(Math.random() * 30 + 15),
+      strongestArea: strongest.name,
+      weakestArea: weakest.name,
+      improvementRate: Math.floor(Math.random() * 20 + 5),
+      consistencyScore: Math.floor(Math.random() * 30 + 70),
+      retentionRate: Math.floor(Math.random() * 15 + 80)
+    };
+  };
+
+  const generateCategoryStats = (progress: UserProgress | null): CategoryStats[] => {
+    if (!progress) return [];
+
+    const kanjiLearned = Object.values(progress.kanjiProgress).filter(p => p.learned).length;
+    const grammarLearned = Object.values(progress.grammarProgress).filter(p => p.learned).length;
+    const vocabularyLearned = Object.values(progress.vocabularyProgress).filter(p => p.learned).length;
+
+    return [
+      {
+        category: 'Kanji',
+        totalTime: Math.floor(Math.random() * 200 + 50),
+        sessionsCount: Math.floor(Math.random() * 20 + 10),
+        averageScore: Math.floor(Math.random() * 20 + 75),
+        progressRate: Math.floor(Math.random() * 15 + 5),
+        lastStudied: '2024-01-15'
+      },
+      {
+        category: 'Grammar',
+        totalTime: Math.floor(Math.random() * 150 + 40),
+        sessionsCount: Math.floor(Math.random() * 15 + 8),
+        averageScore: Math.floor(Math.random() * 25 + 70),
+        progressRate: Math.floor(Math.random() * 12 + 3),
+        lastStudied: '2024-01-14'
+      },
+      {
+        category: 'Vocabulary',
+        totalTime: Math.floor(Math.random() * 180 + 60),
+        sessionsCount: Math.floor(Math.random() * 18 + 12),
+        averageScore: Math.floor(Math.random() * 18 + 80),
+        progressRate: Math.floor(Math.random() * 20 + 8),
+        lastStudied: '2024-01-16'
+      },
+      {
+        category: 'Reading',
+        totalTime: Math.floor(Math.random() * 120 + 30),
+        sessionsCount: Math.floor(Math.random() * 10 + 5),
+        averageScore: Math.floor(Math.random() * 22 + 65),
+        progressRate: Math.floor(Math.random() * 10 + 2),
+        lastStudied: '2024-01-13'
+      },
+      {
+        category: 'Writing',
+        totalTime: Math.floor(Math.random() * 100 + 25),
+        sessionsCount: Math.floor(Math.random() * 8 + 4),
+        averageScore: Math.floor(Math.random() * 25 + 60),
+        progressRate: Math.floor(Math.random() * 8 + 1),
+        lastStudied: '2024-01-12'
+      },
+      {
+        category: 'Listening',
+        totalTime: Math.floor(Math.random() * 90 + 20),
+        sessionsCount: Math.floor(Math.random() * 6 + 3),
+        averageScore: Math.floor(Math.random() * 30 + 55),
+        progressRate: Math.floor(Math.random() * 6 + 1),
+        lastStudied: '2024-01-11'
+      }
+    ];
+  };
+
+  const generateTimeDistribution = (): TimeDistribution[] => {
+    const distribution: TimeDistribution[] = [];
+    for (let hour = 0; hour < 24; hour++) {
+      distribution.push({
+        hour,
+        minutes: Math.floor(Math.random() * 60),
+        sessions: Math.floor(Math.random() * 5)
+      });
+    }
+    return distribution;
+  };
+
+  const generateDifficultyAnalysis = (): DifficultyAnalysis[] => {
+    return [
+      {
+        level: 'Beginner',
+        accuracy: Math.floor(Math.random() * 15 + 85),
+        timeSpent: Math.floor(Math.random() * 100 + 50),
+        improvements: ['Consistent practice', 'Good retention', 'Steady progress']
+      },
+      {
+        level: 'Intermediate',
+        accuracy: Math.floor(Math.random() * 20 + 70),
+        timeSpent: Math.floor(Math.random() * 150 + 75),
+        improvements: ['Focus on weak areas', 'Increase practice frequency', 'Review previous lessons']
+      },
+      {
+        level: 'Advanced',
+        accuracy: Math.floor(Math.random() * 25 + 60),
+        timeSpent: Math.floor(Math.random() * 200 + 100),
+        improvements: ['Challenge yourself more', 'Practice complex structures', 'Immersion activities']
+      }
+    ];
+  };
+
+  const generateLearningTrends = (): LearningTrend[] => {
+    const trends: LearningTrend[] = [];
+    const today = new Date();
+    
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      
+      trends.push({
+        date: date.toISOString().split('T')[0],
+        studyTime: Math.floor(Math.random() * 60 + 10),
+        itemsLearned: Math.floor(Math.random() * 15 + 5),
+        accuracy: Math.floor(Math.random() * 25 + 70)
+      });
+    }
+    
+    return trends;
+  };
+
+  const formatTime = (minutes: number): string => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+
+  const getCategoryIcon = (category: string) => {
+    switch (category.toLowerCase()) {
+      case 'kanji': return BookOpen;
+      case 'grammar': return Globe;
+      case 'vocabulary': return GraduationCap;
+      case 'reading': return Eye;
+      case 'writing': return Edit3;
+      case 'listening': return Headphones;
+      default: return BookOpen;
     }
   };
 
-  const getAccuracyColor = (accuracy: number) => {
-    if (accuracy >= 85) return 'text-green-600 bg-green-100';
-    if (accuracy >= 70) return 'text-yellow-600 bg-yellow-100';
-    return 'text-red-600 bg-red-100';
+  const getCategoryColor = (category: string) => {
+    switch (category.toLowerCase()) {
+      case 'kanji': return 'bg-blue-100 text-blue-600';
+      case 'grammar': return 'bg-green-100 text-green-600';
+      case 'vocabulary': return 'bg-purple-100 text-purple-600';
+      case 'reading': return 'bg-orange-100 text-orange-600';
+      case 'writing': return 'bg-red-100 text-red-600';
+      case 'listening': return 'bg-indigo-100 text-indigo-600';
+      default: return 'bg-gray-100 text-gray-600';
+    }
   };
 
-  const getProgressColor = (progress: number) => {
-    if (progress > 0) return 'text-green-600';
-    if (progress < 0) return 'text-red-600';
-    return 'text-gray-600';
+  const getPerformanceColor = (score: number) => {
+    if (score >= 90) return 'text-green-600';
+    if (score >= 75) return 'text-yellow-600';
+    if (score >= 60) return 'text-orange-600';
+    return 'text-red-600';
   };
+
+  const getPerformanceIcon = (score: number) => {
+    if (score >= 90) return TrendingUp;
+    if (score >= 75) return TrendingUp;
+    if (score >= 60) return TrendingDown;
+    return TrendingDown;
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-center h-64">
+          <LoadingSpinner size="lg" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!analyticsData) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center py-8">
+          <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500">Analytics data not available</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-gray-900">Analytics Dashboard</h2>
-          
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-600">Periode:</span>
-              {(['week', 'month', 'all'] as const).map((range) => (
-                <button
-                  key={range}
-                  onClick={() => setSelectedTimeRange(range)}
-                  className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                    selectedTimeRange === range
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  {range === 'week' ? 'Minggu' : range === 'month' ? 'Bulan' : 'Semua'}
-                </button>
-              ))}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Learning Analytics</h1>
+        <p className="text-gray-600">Detailed insights into your Japanese learning performance</p>
+      </div>
+
+      {/* Controls */}
+      <div className="mb-8 flex flex-wrap gap-4">
+        <select
+          value={selectedTimeRange}
+          onChange={(e) => setSelectedTimeRange(e.target.value as any)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="7days">Last 7 days</option>
+          <option value="30days">Last 30 days</option>
+          <option value="90days">Last 90 days</option>
+          <option value="all">All time</option>
+        </select>
+
+        <select
+          value={selectedMetric}
+          onChange={(e) => setSelectedMetric(e.target.value as any)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="time">Study Time</option>
+          <option value="accuracy">Accuracy</option>
+          <option value="progress">Progress Rate</option>
+        </select>
+
+        <button
+          onClick={loadAnalyticsData}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+        >
+          <RefreshCw className="h-4 w-4" />
+          <span>Refresh</span>
+        </button>
+
+        <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2">
+          <Download className="h-4 w-4" />
+          <span>Export</span>
+        </button>
+      </div>
+
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Total Study Time */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 bg-blue-100 rounded-xl">
+              <Clock className="h-6 w-6 text-blue-600" />
             </div>
+            <div className="text-right">
+              <div className="text-sm text-blue-600 font-medium">This month</div>
+            </div>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-gray-900">{formatTime(analyticsData.totalStudyTime)}</p>
+            <p className="text-sm text-gray-600">Total Study Time</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 rounded-lg text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100 text-sm">Total Waktu Belajar</p>
-                <p className="text-2xl font-bold">{overview.totalStudyTime}m</p>
-              </div>
-              <Clock className="h-8 w-8 text-blue-200" />
+        {/* Average Session */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 bg-green-100 rounded-xl">
+              <BarChart3 className="h-6 w-6 text-green-600" />
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-green-600 font-medium">Per session</div>
             </div>
           </div>
+          <div>
+            <p className="text-2xl font-bold text-gray-900">{formatTime(analyticsData.averageSessionTime)}</p>
+            <p className="text-sm text-gray-600">Average Session</p>
+          </div>
+        </div>
 
-          <div className="bg-gradient-to-r from-green-500 to-green-600 p-4 rounded-lg text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-sm">Akurasi Rata-rata</p>
-                <p className="text-2xl font-bold">{overview.overallAccuracy}%</p>
-              </div>
-              <Target className="h-8 w-8 text-green-200" />
+        {/* Consistency Score */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 bg-purple-100 rounded-xl">
+              <Target className="h-6 w-6 text-purple-600" />
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-purple-600 font-medium">Score</div>
             </div>
           </div>
+          <div>
+            <p className="text-2xl font-bold text-gray-900">{analyticsData.consistencyScore}%</p>
+            <p className="text-sm text-gray-600">Consistency</p>
+          </div>
+        </div>
 
-          <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-4 rounded-lg text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100 text-sm">Streak Saat Ini</p>
-                <p className="text-2xl font-bold">{overview.currentStreak}</p>
-              </div>
-              <Zap className="h-8 w-8 text-purple-200" />
+        {/* Retention Rate */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 bg-orange-100 rounded-xl">
+              <Brain className="h-6 w-6 text-orange-600" />
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-orange-600 font-medium">Rate</div>
             </div>
           </div>
-
-          <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-4 rounded-lg text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-orange-100 text-sm">Level</p>
-                <p className="text-2xl font-bold">{overview.level}</p>
-              </div>
-              <Award className="h-8 w-8 text-orange-200" />
-            </div>
+          <div>
+            <p className="text-2xl font-bold text-gray-900">{analyticsData.retentionRate}%</p>
+            <p className="text-sm text-gray-600">Retention</p>
           </div>
         </div>
       </div>
 
-      {/* Skill Breakdown */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Breakdown Kemampuan</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Object.entries(skillBreakdown).map(([skill, metrics]) => (
-            <div key={skill} className="border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-2">
-                  {getSkillIcon(skill)}
-                  <span className="font-medium text-gray-900 capitalize">{skill}</span>
-                </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getAccuracyColor(metrics.averageAccuracy)}`}>
-                  {metrics.averageAccuracy}%
-                </span>
-              </div>
-
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Dipraktikkan:</span>
-                  <span className="font-medium">{metrics.totalPracticed}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Dikuasai:</span>
-                  <span className="font-medium">{metrics.mastered}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Waktu:</span>
-                  <span className="font-medium">{metrics.timeSpent}m</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Progress:</span>
-                  <span className={`font-medium flex items-center ${getProgressColor(metrics.recentProgress)}`}>
-                    {metrics.recentProgress > 0 ? <ArrowUp className="h-3 w-3 mr-1" /> : 
-                     metrics.recentProgress < 0 ? <ArrowDown className="h-3 w-3 mr-1" /> : null}
-                    {Math.abs(metrics.recentProgress)}%
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-3 pt-3 border-t border-gray-200">
-                <div className="mb-2">
-                  <div className="text-xs text-gray-500 mb-1">Area Kuat:</div>
-                  <div className="flex flex-wrap gap-1">
-                    {metrics.strongestAreas.slice(0, 2).map((area, idx) => (
-                      <span key={idx} className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">
-                        {area}
-                      </span>
-                    ))}
-                  </div>
+      {/* Performance Overview */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        {/* Strongest vs Weakest Areas */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Performance Overview</h3>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between p-4 bg-green-50 rounded-xl">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-green-600" />
                 </div>
                 <div>
-                  <div className="text-xs text-gray-500 mb-1">Perlu Diperbaiki:</div>
-                  <div className="flex flex-wrap gap-1">
-                    {metrics.weakestAreas.slice(0, 2).map((area, idx) => (
-                      <span key={idx} className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded">
-                        {area}
-                      </span>
-                    ))}
-                  </div>
+                  <p className="text-sm font-medium text-green-900">Strongest Area</p>
+                  <p className="text-lg font-bold text-green-800">{analyticsData.strongestArea}</p>
                 </div>
               </div>
-
-              {/* Progress bar */}
-              <div className="mt-3">
-                <div className="flex justify-between text-xs text-gray-600 mb-1">
-                  <span>Target: {metrics.nextMilestone.target}</span>
-                  <span>{metrics.nextMilestone.current}/{metrics.nextMilestone.target}</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${(metrics.nextMilestone.current / metrics.nextMilestone.target) * 100}%` }}
-                  />
-                </div>
+              <div className="text-right">
+                <Trophy className="h-8 w-8 text-yellow-500" />
               </div>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Performance Metrics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Time Analytics */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Analisis Waktu</h3>
-          
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Rata-rata Harian:</span>
-              <span className="font-semibold">{timeAnalytics.dailyAverage} menit</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Total Minggu Ini:</span>
-              <span className="font-semibold">{timeAnalytics.weeklyTotal} menit</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Total Bulan Ini:</span>
-              <span className="font-semibold">{timeAnalytics.monthlyTotal} menit</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Hari Terbaik:</span>
-              <span className="font-semibold">{timeAnalytics.bestDay.minutes}m ({new Date(timeAnalytics.bestDay.date).toLocaleDateString()})</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Efisiensi:</span>
-              <span className="font-semibold">{timeAnalytics.efficiency} aktivitas/menit</span>
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <h4 className="font-medium text-gray-900 mb-3">Waktu Belajar per Skill</h4>
-            <div className="space-y-2">
-              {Object.entries(timeAnalytics.studyTimeBySkill).slice(0, 5).map(([skill, time]) => (
-                <div key={skill} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    {getSkillIcon(skill)}
-                    <span className="text-sm capitalize">{skill}</span>
-                  </div>
-                  <span className="text-sm font-medium">{Math.round(time)}m</span>
+            <div className="flex items-center justify-between p-4 bg-red-50 rounded-xl">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <TrendingDown className="h-5 w-5 text-red-600" />
                 </div>
-              ))}
+                <div>
+                  <p className="text-sm font-medium text-red-900">Needs Improvement</p>
+                  <p className="text-lg font-bold text-red-800">{analyticsData.weakestArea}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <Target className="h-8 w-8 text-red-500" />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Activity className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-blue-900">Improvement Rate</p>
+                  <p className="text-lg font-bold text-blue-800">+{analyticsData.improvementRate}%</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <ArrowUp className="h-8 w-8 text-blue-500" />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Performance Insights */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Insights Performa</h3>
-          
+        {/* Learning Trends Chart */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Learning Trends (30 Days)</h3>
           <div className="space-y-4">
-            <div className="p-3 bg-blue-50 rounded-lg">
-              <div className="flex items-center space-x-2 mb-1">
-                <TrendingUp className="h-4 w-4 text-blue-600" />
-                <span className="font-medium text-blue-900">Konsistensi</span>
-              </div>
-              <div className="text-sm text-blue-700">
-                Skor konsistensi: {performanceMetrics.consistencyScore}%
-              </div>
-            </div>
-
-            <div className="p-3 bg-green-50 rounded-lg">
-              <div className="flex items-center space-x-2 mb-1">
-                <Zap className="h-4 w-4 text-green-600" />
-                <span className="font-medium text-green-900">Kecepatan Belajar</span>
-              </div>
-              <div className="text-sm text-green-700">
-                {performanceMetrics.learningVelocity} item/hari
-              </div>
-            </div>
-
-            <div className="p-3 bg-purple-50 rounded-lg">
-              <div className="flex items-center space-x-2 mb-1">
-                <Brain className="h-4 w-4 text-purple-600" />
-                <span className="font-medium text-purple-900">Retensi</span>
-              </div>
-              <div className="text-sm text-purple-700">
-                Tingkat retensi: {performanceMetrics.retentionRate}%
-              </div>
-            </div>
-          </div>
-
-          {/* Error Patterns */}
-          <div className="mt-6">
-            <h4 className="font-medium text-gray-900 mb-3">Pola Kesalahan</h4>
-            <div className="space-y-2">
-              {performanceMetrics.errorPatterns.slice(0, 3).map((pattern, idx) => (
-                <div key={idx} className="p-2 bg-red-50 rounded border border-red-200">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="font-medium text-red-900 text-sm">{pattern.errorType}</div>
-                      <div className="text-red-700 text-xs">{pattern.category}</div>
-                    </div>
-                    <span className="text-red-600 text-xs font-medium">{pattern.frequency}x</span>
+            {learningTrends.slice(-7).map((trend, index) => (
+              <div key={trend.date} className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="text-sm text-gray-500 w-20">
+                    Day {index + 1}
                   </div>
-                  <div className="text-red-600 text-xs mt-1">{pattern.suggestedFocus}</div>
+                  <div className="flex-1 bg-gray-200 rounded-full h-2 max-w-32">
+                    <div
+                      className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full"
+                      style={{ width: `${Math.min(100, (trend.studyTime / 60) * 100)}%` }}
+                    ></div>
+                  </div>
                 </div>
-              ))}
-            </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-900">{formatTime(trend.studyTime)}</div>
+                  <div className="text-xs text-gray-500">{trend.itemsLearned} items • {trend.accuracy}%</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Recommendations */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Rekomendasi Personal</h3>
-        
+      {/* Category Performance */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900">Category Performance</h3>
+          <div className="flex items-center space-x-2">
+            <PieChart className="h-5 w-5 text-gray-400" />
+            <span className="text-sm text-gray-500">Detailed breakdown</span>
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {recommendations.map((rec) => (
-            <div key={rec.id} className={`p-4 rounded-lg border ${
-              rec.priority === 'high' ? 'border-red-200 bg-red-50' :
-              rec.priority === 'medium' ? 'border-yellow-200 bg-yellow-50' :
-              'border-blue-200 bg-blue-50'
-            }`}>
-              <div className="flex items-start space-x-3">
-                <div className={`p-1 rounded ${
-                  rec.priority === 'high' ? 'bg-red-200' :
-                  rec.priority === 'medium' ? 'bg-yellow-200' :
-                  'bg-blue-200'
-                }`}>
-                  {rec.priority === 'high' ? <AlertTriangle className="h-4 w-4 text-red-600" /> :
-                   rec.priority === 'medium' ? <Clock className="h-4 w-4 text-yellow-600" /> :
-                   <CheckCircle className="h-4 w-4 text-blue-600" />}
-                </div>
-                <div className="flex-1">
-                  <h4 className={`font-medium mb-1 ${
-                    rec.priority === 'high' ? 'text-red-900' :
-                    rec.priority === 'medium' ? 'text-yellow-900' :
-                    'text-blue-900'
-                  }`}>
-                    {rec.title}
-                  </h4>
-                  <p className={`text-sm mb-2 ${
-                    rec.priority === 'high' ? 'text-red-700' :
-                    rec.priority === 'medium' ? 'text-yellow-700' :
-                    'text-blue-700'
-                  }`}>
-                    {rec.description}
-                  </p>
-                  <div className={`text-xs ${
-                    rec.priority === 'high' ? 'text-red-600' :
-                    rec.priority === 'medium' ? 'text-yellow-600' :
-                    'text-blue-600'
-                  }`}>
-                    <div className="font-medium">Action: {rec.action}</div>
-                    <div>Target: {rec.expectedImprovement}</div>
-                    <div>Waktu: {rec.estimatedTime}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Streak Analytics */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Analisis Streak</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="text-center p-4 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg text-white">
-            <div className="text-2xl font-bold">{streakAnalytics.current}</div>
-            <div className="text-yellow-100 text-sm">Streak Saat Ini</div>
-          </div>
-          <div className="text-center p-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg text-white">
-            <div className="text-2xl font-bold">{streakAnalytics.longest}</div>
-            <div className="text-purple-100 text-sm">Streak Terpanjang</div>
-          </div>
-          <div className="text-center p-4 bg-gradient-to-br from-green-500 to-teal-500 rounded-lg text-white">
-            <div className="text-2xl font-bold">{streakAnalytics.thisWeek}</div>
-            <div className="text-green-100 text-sm">Minggu Ini</div>
-          </div>
-          <div className="text-center p-4 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg text-white">
-            <div className="text-2xl font-bold">{streakAnalytics.averageStreakLength}</div>
-            <div className="text-blue-100 text-sm">Rata-rata</div>
-          </div>
-        </div>
-
-        <div className={`p-4 rounded-lg ${
-          streakAnalytics.streakMaintenance.riskLevel === 'high' ? 'bg-red-50 border border-red-200' :
-          streakAnalytics.streakMaintenance.riskLevel === 'medium' ? 'bg-yellow-50 border border-yellow-200' :
-          'bg-green-50 border border-green-200'
-        }`}>
-          <div className="flex items-center space-x-2 mb-2">
-            {streakAnalytics.streakMaintenance.riskLevel === 'high' ? 
-              <AlertTriangle className="h-5 w-5 text-red-600" /> :
-              streakAnalytics.streakMaintenance.riskLevel === 'medium' ? 
-                <Clock className="h-5 w-5 text-yellow-600" /> :
-                <Star className="h-5 w-5 text-green-600" />
-            }
-            <span className={`font-medium ${
-              streakAnalytics.streakMaintenance.riskLevel === 'high' ? 'text-red-900' :
-              streakAnalytics.streakMaintenance.riskLevel === 'medium' ? 'text-yellow-900' :
-              'text-green-900'
-            }`}>
-              Status Streak: {
-                streakAnalytics.streakMaintenance.riskLevel === 'high' ? 'Risiko Tinggi' :
-                streakAnalytics.streakMaintenance.riskLevel === 'medium' ? 'Perlu Perhatian' :
-                'Sangat Baik'
-              }
-            </span>
-          </div>
-          <p className={`text-sm ${
-            streakAnalytics.streakMaintenance.riskLevel === 'high' ? 'text-red-700' :
-            streakAnalytics.streakMaintenance.riskLevel === 'medium' ? 'text-yellow-700' :
-            'text-green-700'
-          }`}>
-            {streakAnalytics.streakMaintenance.suggestion}
-          </p>
-        </div>
-      </div>
-
-      {/* Weakness Analysis */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Analisis Kelemahan & Kekuatan</h3>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Critical Weaknesses */}
-          <div>
-            <h4 className="font-medium text-red-900 mb-3 flex items-center">
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              Area Kritis
-            </h4>
-            {weaknessAnalysis.criticalWeaknesses.length > 0 ? (
-              <div className="space-y-3">
-                {weaknessAnalysis.criticalWeaknesses.map((weakness, idx) => (
-                  <div key={idx} className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <div className="font-medium text-red-900">{weakness.skill}</div>
-                        <div className="text-sm text-red-700">{weakness.area}</div>
-                      </div>
-                      <span className="text-red-600 font-medium">{weakness.accuracy}%</span>
+          {categoryStats.map((stat) => {
+            const IconComponent = getCategoryIcon(stat.category);
+            const PerformanceIcon = getPerformanceIcon(stat.averageScore);
+            
+            return (
+              <div key={stat.category} className="border border-gray-200 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <div className={`p-2 rounded-lg ${getCategoryColor(stat.category)}`}>
+                      <IconComponent className="h-5 w-5" />
                     </div>
-                    <div className="text-xs text-red-600">
-                      {weakness.suggestedExercises.slice(0, 2).join(', ')}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-sm">Tidak ada area kritis yang teridentifikasi! 🎉</p>
-            )}
-          </div>
-
-          {/* Strengths */}
-          <div>
-            <h4 className="font-medium text-green-900 mb-3 flex items-center">
-              <Star className="h-4 w-4 mr-2" />
-              Kekuatan
-            </h4>
-            <div className="space-y-3">
-              {weaknessAnalysis.strengthsToLeverage.map((strength, idx) => (
-                <div key={idx} className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex justify-between items-start mb-2">
                     <div>
-                      <div className="font-medium text-green-900">{strength.skill}</div>
-                      <div className="text-sm text-green-700">{strength.area}</div>
+                      <p className="font-medium text-gray-900">{stat.category}</p>
+                      <p className="text-xs text-gray-500">{stat.sessionsCount} sessions</p>
                     </div>
-                    <span className="text-green-600 font-medium">{strength.accuracy}%</span>
                   </div>
-                  <div className="text-xs text-green-600">{strength.description}</div>
+                  <div className={`${getPerformanceColor(stat.averageScore)}`}>
+                    <PerformanceIcon className="h-5 w-5" />
+                  </div>
                 </div>
-              ))}
-            </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Time spent:</span>
+                    <span className="font-medium">{formatTime(stat.totalTime)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Avg. score:</span>
+                    <span className={`font-medium ${getPerformanceColor(stat.averageScore)}`}>
+                      {stat.averageScore}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Progress:</span>
+                    <span className="font-medium text-green-600">+{stat.progressRate}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full"
+                      style={{ width: `${stat.averageScore}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Difficulty Analysis */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Time Distribution */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Study Time Distribution</h3>
+          <div className="space-y-3">
+            {timeDistribution.filter(t => t.sessions > 0).slice(0, 6).map((time) => (
+              <div key={time.hour} className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="text-sm text-gray-500 w-16">
+                    {time.hour}:00
+                  </div>
+                  <div className="flex-1 bg-gray-200 rounded-full h-2 max-w-24">
+                    <div
+                      className="bg-gradient-to-r from-orange-500 to-red-500 h-2 rounded-full"
+                      style={{ width: `${Math.min(100, (time.sessions / 5) * 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-900">{time.sessions} sessions</div>
+                  <div className="text-xs text-gray-500">{time.minutes}m avg</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Focus Recommendations */}
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <h4 className="font-medium text-gray-900 mb-3">Rekomendasi Fokus Belajar</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {weaknessAnalysis.focusRecommendations.map((focus, idx) => (
-              <div key={idx} className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="font-medium text-blue-900">
-                    {focus.skill === 'balanced' ? 'Belajar Seimbang' : `Fokus ${focus.skill}`}
+        {/* Difficulty Breakdown */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Difficulty Analysis</h3>
+          <div className="space-y-4">
+            {difficultyAnalysis.map((analysis) => (
+              <div key={analysis.level} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium text-gray-900">{analysis.level}</h4>
+                  <div className={`font-medium ${getPerformanceColor(analysis.accuracy)}`}>
+                    {analysis.accuracy}%
                   </div>
-                  <span className="text-blue-600 font-medium">{focus.timeAllocation}%</span>
                 </div>
-                <div className="text-sm text-blue-700 mb-2">
-                  Target: {focus.expectedImprovement}
-                </div>
-                <div className="text-xs text-blue-600">
-                  Area: {focus.specificAreas.join(', ')}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Time spent:</span>
+                    <span className="font-medium">{formatTime(analysis.timeSpent)}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full"
+                      style={{ width: `${analysis.accuracy}%` }}
+                    ></div>
+                  </div>
+                  <div className="mt-2">
+                    <p className="text-xs text-gray-600 mb-1">Improvements:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {analysis.improvements.map((improvement, index) => (
+                        <span key={index} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                          {improvement}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
