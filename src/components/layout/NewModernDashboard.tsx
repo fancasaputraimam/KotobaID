@@ -364,6 +364,15 @@ const NewModernDashboard: React.FC = () => {
                     <div className="p-2">
                       <button
                         onClick={() => {
+                          setProfileDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-50 text-blue-700 transition-all duration-300 hover:scale-105"
+                      >
+                        <User className="h-4 w-4 transition-transform duration-300" />
+                        <span className="text-sm">Profile</span>
+                      </button>
+                      <button
+                        onClick={() => {
                           setActiveTab('settings');
                           setProfileDropdownOpen(false);
                         }}
