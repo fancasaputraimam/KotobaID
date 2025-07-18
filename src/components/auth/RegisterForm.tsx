@@ -45,10 +45,32 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleForm }) => {
     try {
       // In a real application, you would send the recaptchaToken to your backend
       // for verification before proceeding with the registration
+      console.log('Attempting to register user:', email);
       await register(email, password, 'user');
+      console.log('Registration successful');
     } catch (error: any) {
-      setError('Gagal membuat akun. Silakan coba lagi.');
-      console.error('Register error:', error);
+      console.error('Registration error details:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      
+      let errorMessage = 'Gagal membuat akun. Silakan coba lagi.';
+      
+      // Provide more specific error messages based on Firebase error codes
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'Email sudah terdaftar. Silakan gunakan email lain atau login.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Format email tidak valid.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password terlalu lemah. Gunakan minimal 6 karakter.';
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Koneksi internet bermasalah. Silakan coba lagi.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Terlalu banyak percobaan. Silakan tunggu beberapa saat.';
+      } else if (error.code === 'permission-denied') {
+        errorMessage = 'Tidak memiliki izin untuk membuat akun. Hubungi administrator.';
+      }
+      
+      setError(errorMessage);
       // Reset reCAPTCHA on error
       recaptchaRef.current?.reset();
       setRecaptchaToken(null);

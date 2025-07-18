@@ -41,19 +41,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const register = async (email: string, password: string, role: 'admin' | 'user' = 'user') => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    
-    const userData: User = {
-      uid: user.uid,
-      email: user.email!,
-      role,
-      displayName: user.displayName || undefined,
-      createdAt: new Date(),
-      lastLogin: new Date()
-    };
+    try {
+      console.log('Creating Firebase user...');
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      console.log('Firebase user created successfully:', user.uid);
+      
+      const userData: User = {
+        uid: user.uid,
+        email: user.email!,
+        role,
+        displayName: user.displayName || undefined,
+        createdAt: new Date(),
+        lastLogin: new Date()
+      };
 
-    await setDoc(doc(db, 'users', user.uid), userData);
+      console.log('Saving user data to Firestore...');
+      await setDoc(doc(db, 'users', user.uid), userData);
+      console.log('User data saved to Firestore successfully');
+    } catch (error) {
+      console.error('Error in register function:', error);
+      throw error; // Re-throw the error so it can be handled by the component
+    }
   };
 
   const logout = async () => {

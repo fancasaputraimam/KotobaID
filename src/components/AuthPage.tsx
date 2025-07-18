@@ -1,10 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BookOpen, ArrowLeft, Users, Award, TrendingUp } from 'lucide-react';
 import LoginForm from './auth/LoginForm';
 import RegisterForm from './auth/RegisterForm';
+import { checkFirebaseConfiguration, testFirebaseConnection } from '../utils/firebaseCheck';
 
 const AuthPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
+
+  useEffect(() => {
+    // Run Firebase checks on component mount
+    checkFirebaseConfiguration();
+    testFirebaseConnection();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex">
