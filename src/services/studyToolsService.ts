@@ -1,4 +1,5 @@
 import { azureOpenAI } from './azureOpenAI';
+import { firestoreService } from './firestoreService';
 import { 
   DictionaryEntry, 
   SentenceAnalysis, 
@@ -10,185 +11,6 @@ import {
 } from '../types/studyTools';
 
 export class StudyToolsService {
-  
-  // Japanese dictionary data (simplified - in production would use comprehensive dictionary)
-  private static dictionaryData: DictionaryEntry[] = [
-    {
-      id: 'dict_01',
-      word: 'こんにちは',
-      reading: 'konnichiwa',
-      meanings: [
-        {
-          id: 'meaning_01',
-          definition: 'Good afternoon greeting',
-          indonesian: 'Selamat siang',
-          context: 'Used from late morning until late afternoon'
-        }
-      ],
-      partOfSpeech: ['interjection'],
-      jlptLevel: 'N5',
-      frequency: 5,
-      examples: [
-        {
-          id: 'ex_01',
-          japanese: 'こんにちは、田中さん。',
-          reading: 'konnichiwa, tanaka-san',
-          indonesian: 'Selamat siang, Tanaka-san.',
-          difficulty: 'beginner',
-          source: 'common_greetings',
-          tags: ['greeting', 'polite']
-        }
-      ],
-      tags: ['greeting', 'daily', 'polite'],
-      source: 'internal',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    },
-    {
-      id: 'dict_02',
-      word: 'ありがとう',
-      reading: 'arigatou',
-      meanings: [
-        {
-          id: 'meaning_02',
-          definition: 'Thank you (casual)',
-          indonesian: 'Terima kasih',
-          context: 'Casual expression of gratitude'
-        }
-      ],
-      partOfSpeech: ['interjection'],
-      jlptLevel: 'N5',
-      frequency: 5,
-      examples: [
-        {
-          id: 'ex_02',
-          japanese: 'ありがとう、お母さん。',
-          reading: 'arigatou, okaasan',
-          indonesian: 'Terima kasih, Ibu.',
-          difficulty: 'beginner',
-          source: 'family_conversations',
-          tags: ['gratitude', 'family']
-        }
-      ],
-      tags: ['gratitude', 'daily', 'casual'],
-      source: 'internal',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    },
-    {
-      id: 'dict_03',
-      word: '食べる',
-      reading: 'taberu',
-      meanings: [
-        {
-          id: 'meaning_03',
-          definition: 'To eat',
-          indonesian: 'Makan',
-          context: 'Basic verb for eating'
-        }
-      ],
-      partOfSpeech: ['verb', 'ichidan'],
-      jlptLevel: 'N5',
-      frequency: 5,
-      examples: [
-        {
-          id: 'ex_03',
-          japanese: 'りんごを食べます。',
-          reading: 'ringo wo tabemasu',
-          indonesian: 'Saya makan apel.',
-          difficulty: 'beginner',
-          source: 'basic_verbs',
-          tags: ['food', 'action']
-        }
-      ],
-      tags: ['verb', 'food', 'daily'],
-      source: 'internal',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    },
-    {
-      id: 'dict_04',
-      word: '学校',
-      reading: 'gakkou',
-      meanings: [
-        {
-          id: 'meaning_04',
-          definition: 'School',
-          indonesian: 'Sekolah',
-          context: 'Educational institution'
-        }
-      ],
-      kanji: [
-        {
-          character: '学',
-          meaning: 'study, learn',
-          onyomi: ['がく', 'がっ'],
-          kunyomi: ['まな.ぶ'],
-          strokeCount: 8,
-          jlptLevel: 'N5',
-          frequency: 5
-        },
-        {
-          character: '校',
-          meaning: 'school',
-          onyomi: ['こう', 'きょう'],
-          kunyomi: [],
-          strokeCount: 10,
-          jlptLevel: 'N5',
-          frequency: 4
-        }
-      ],
-      partOfSpeech: ['noun'],
-      jlptLevel: 'N5',
-      frequency: 5,
-      examples: [
-        {
-          id: 'ex_04',
-          japanese: '学校に行きます。',
-          reading: 'gakkou ni ikimasu',
-          indonesian: 'Saya pergi ke sekolah.',
-          difficulty: 'beginner',
-          source: 'daily_activities',
-          tags: ['education', 'location']
-        }
-      ],
-      tags: ['education', 'place', 'daily'],
-      source: 'internal',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    },
-    {
-      id: 'dict_05',
-      word: '美しい',
-      reading: 'utsukushii',
-      meanings: [
-        {
-          id: 'meaning_05',
-          definition: 'Beautiful',
-          indonesian: 'Indah, cantik',
-          context: 'Describing aesthetic beauty'
-        }
-      ],
-      partOfSpeech: ['i-adjective'],
-      jlptLevel: 'N4',
-      frequency: 4,
-      examples: [
-        {
-          id: 'ex_05',
-          japanese: '美しい花ですね。',
-          reading: 'utsukushii hana desu ne',
-          indonesian: 'Bunga yang indah ya.',
-          difficulty: 'intermediate',
-          source: 'descriptions',
-          tags: ['beauty', 'nature']
-        }
-      ],
-      tags: ['adjective', 'beauty', 'description'],
-      source: 'internal',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }
-  ];
 
   static async searchDictionary(
     query: string, 
@@ -197,66 +19,16 @@ export class StudyToolsService {
     limit: number = 20
   ): Promise<SearchResult> {
     try {
-      // Normalize query
-      const normalizedQuery = query.toLowerCase().trim();
+      // Get dictionary data from Firebase
+      const dictionaryData = await firestoreService.getDictionaryEntries(query, filters, page, limit);
       
-      // Filter entries based on query
-      let results = this.dictionaryData.filter(entry => {
-        const matchesQuery = 
-          entry.word.toLowerCase().includes(normalizedQuery) ||
-          entry.reading.toLowerCase().includes(normalizedQuery) ||
-          entry.meanings.some(meaning => 
-            meaning.indonesian.toLowerCase().includes(normalizedQuery) ||
-            meaning.definition.toLowerCase().includes(normalizedQuery)
-          );
-        
-        if (!matchesQuery) return false;
-
-        // Apply filters
-        if (filters.partOfSpeech && !filters.partOfSpeech.some(pos => entry.partOfSpeech.includes(pos))) {
-          return false;
-        }
-        
-        if (filters.jlptLevel && !filters.jlptLevel.includes(entry.jlptLevel || '')) {
-          return false;
-        }
-        
-        if (filters.hasAudio && !entry.audio) {
-          return false;
-        }
-        
-        if (filters.hasExamples && entry.examples.length === 0) {
-          return false;
-        }
-        
-        if (filters.tags && !filters.tags.some(tag => entry.tags.includes(tag))) {
-          return false;
-        }
-
-        return true;
-      });
-
-      // Sort by relevance and frequency
-      results.sort((a, b) => {
-        // Exact matches first
-        if (a.word === query) return -1;
-        if (b.word === query) return 1;
-        
-        // Then by frequency
-        return b.frequency - a.frequency;
-      });
-
-      // Pagination
-      const startIndex = (page - 1) * limit;
-      const paginatedResults = results.slice(startIndex, startIndex + limit);
-
-      // Generate suggestions and related terms
-      const suggestions = this.generateSuggestions(query, results);
-      const relatedTerms = this.findRelatedTerms(query, results);
+      // Generate suggestions and related terms using AI
+      const suggestions = await this.generateAISuggestions(query, dictionaryData.entries);
+      const relatedTerms = await this.findAIRelatedTerms(query, dictionaryData.entries);
 
       return {
-        entries: paginatedResults,
-        total: results.length,
+        entries: dictionaryData.entries,
+        total: dictionaryData.total,
         page,
         limit,
         suggestions,
@@ -351,67 +123,95 @@ export class StudyToolsService {
   }
 
   private static async tokenizeSentence(sentence: string): Promise<Token[]> {
-    // Simplified tokenization - in production would use proper Japanese tokenizer
-    const tokens: Token[] = [];
-    const words = sentence.split(/[\s、。！？]/);
-    
-    for (let i = 0; i < words.length; i++) {
-      const word = words[i].trim();
-      if (!word) continue;
-      
-      // Find dictionary entry for this word
-      const entry = this.dictionaryData.find(e => 
-        e.word === word || e.reading === word
-      );
-      
-      tokens.push({
-        id: `token_${i}`,
-        surface: word,
-        reading: entry?.reading || word,
-        baseForm: entry?.word || word,
-        partOfSpeech: entry?.partOfSpeech[0] || 'unknown',
-        meaning: entry?.meanings[0]?.definition || 'Unknown meaning',
-        indonesian: entry?.meanings[0]?.indonesian || 'Arti tidak diketahui',
-        isKnown: !!entry,
-        difficulty: entry?.frequency || 1,
-        jlptLevel: entry?.jlptLevel
-      });
+    try {
+      // Use AI to tokenize Japanese sentence
+      const prompt = `
+        Analyze and tokenize this Japanese sentence: "${sentence}"
+        
+        For each token, provide:
+        1. surface (original form)
+        2. reading (hiragana/katakana reading)
+        3. baseForm (dictionary form)
+        4. partOfSpeech (noun, verb, adjective, etc.)
+        5. meaning (English definition)
+        6. indonesian (Indonesian translation)
+        7. isKnown (estimate based on JLPT N5-N4 level)
+        8. difficulty (1-5 scale)
+        9. jlptLevel (N5, N4, N3, N2, N1, or null)
+        
+        Return as JSON array of tokens.
+      `;
+
+      const response = await azureOpenAI.getChatResponse([
+        { role: 'user', content: prompt }
+      ]);
+
+      try {
+        const tokens = JSON.parse(response);
+        return tokens.map((token: any, index: number) => ({
+          id: `token_${index}`,
+          surface: token.surface || '',
+          reading: token.reading || token.surface,
+          baseForm: token.baseForm || token.surface,
+          partOfSpeech: token.partOfSpeech || 'unknown',
+          meaning: token.meaning || 'Unknown meaning',
+          indonesian: token.indonesian || 'Arti tidak diketahui',
+          isKnown: token.isKnown || false,
+          difficulty: token.difficulty || 3,
+          jlptLevel: token.jlptLevel
+        }));
+      } catch (parseError) {
+        console.error('Error parsing AI tokenization:', parseError);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error in AI tokenization:', error);
+      return [];
     }
-    
-    return tokens;
   }
 
   private static async extractGrammar(sentence: string, tokens: Token[]): Promise<GrammarAnalysis[]> {
-    const grammar: GrammarAnalysis[] = [];
-    
-    // Simple grammar pattern detection
-    if (sentence.includes('を')) {
-      grammar.push({
-        id: 'grammar_wo',
-        pattern: 'を',
-        explanation: 'Object marker particle',
-        indonesian: 'Partikel penanda objek',
-        example: 'りんごを食べます (makan apel)',
-        level: 'basic',
-        category: 'particles',
-        relatedPatterns: ['が', 'は', 'に']
-      });
+    try {
+      // Use AI to analyze grammar patterns
+      const prompt = `
+        Analyze the grammar patterns in this Japanese sentence: "${sentence}"
+        
+        For each grammar pattern found, provide:
+        1. pattern (the grammar pattern)
+        2. explanation (English explanation)
+        3. indonesian (Indonesian explanation)
+        4. example (example usage)
+        5. level (basic, intermediate, advanced)
+        6. category (particles, politeness, verb-forms, etc.)
+        7. relatedPatterns (array of related patterns)
+        
+        Return as JSON array of grammar analyses.
+      `;
+
+      const response = await azureOpenAI.getChatResponse([
+        { role: 'user', content: prompt }
+      ]);
+
+      try {
+        const grammarAnalyses = JSON.parse(response);
+        return grammarAnalyses.map((analysis: any, index: number) => ({
+          id: `grammar_${index}`,
+          pattern: analysis.pattern || '',
+          explanation: analysis.explanation || '',
+          indonesian: analysis.indonesian || '',
+          example: analysis.example || '',
+          level: analysis.level || 'basic',
+          category: analysis.category || 'general',
+          relatedPatterns: analysis.relatedPatterns || []
+        }));
+      } catch (parseError) {
+        console.error('Error parsing AI grammar analysis:', parseError);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error in AI grammar analysis:', error);
+      return [];
     }
-    
-    if (sentence.includes('です') || sentence.includes('ます')) {
-      grammar.push({
-        id: 'grammar_polite',
-        pattern: 'です/ます',
-        explanation: 'Polite form endings',
-        indonesian: 'Bentuk sopan/formal',
-        example: 'これは本です (ini adalah buku)',
-        level: 'basic',
-        category: 'politeness',
-        relatedPatterns: ['である', 'だ']
-      });
-    }
-    
-    return grammar;
   }
 
   private static async generateSentenceBreakdown(
@@ -521,61 +321,103 @@ export class StudyToolsService {
     return suggestions;
   }
 
-  private static generateSuggestions(query: string, results: DictionaryEntry[]): string[] {
-    if (results.length === 0) {
-      // Generate suggestions for typos or alternatives
-      return this.dictionaryData
-        .filter(entry => 
-          entry.word.includes(query.substring(0, 2)) ||
-          entry.reading.includes(query.substring(0, 2))
-        )
-        .slice(0, 5)
-        .map(entry => entry.word);
+  private static async generateAISuggestions(query: string, results: DictionaryEntry[]): Promise<string[]> {
+    try {
+      if (results.length === 0) {
+        // Use AI to generate suggestions for typos or alternatives
+        const prompt = `
+          The user searched for "${query}" in Japanese but no results were found.
+          Generate 5 alternative search suggestions that might be what they meant.
+          Consider common typos, romanization variations, or similar words.
+          Return as JSON array of strings.
+        `;
+
+        const response = await azureOpenAI.getChatResponse([
+          { role: 'user', content: prompt }
+        ]);
+
+        try {
+          return JSON.parse(response);
+        } catch (parseError) {
+          return [];
+        }
+      }
+      return [];
+    } catch (error) {
+      console.error('Error generating AI suggestions:', error);
+      return [];
     }
-    
-    return [];
   }
 
-  private static findRelatedTerms(query: string, results: DictionaryEntry[]): string[] {
-    const related = new Set<string>();
-    
-    results.forEach(entry => {
-      entry.tags.forEach(tag => {
-        this.dictionaryData.forEach(other => {
-          if (other.id !== entry.id && other.tags.includes(tag)) {
-            related.add(other.word);
-          }
-        });
-      });
-    });
-    
-    return Array.from(related).slice(0, 8);
+  private static async findAIRelatedTerms(query: string, results: DictionaryEntry[]): Promise<string[]> {
+    try {
+      if (results.length === 0) return [];
+
+      const prompt = `
+        Based on the search query "${query}" and the found results, 
+        suggest 8 related Japanese words that the user might be interested in learning.
+        Consider semantic relationships, word families, and thematic connections.
+        Return as JSON array of strings.
+      `;
+
+      const response = await azureOpenAI.getChatResponse([
+        { role: 'user', content: prompt }
+      ]);
+
+      try {
+        return JSON.parse(response);
+      } catch (parseError) {
+        return [];
+      }
+    } catch (error) {
+      console.error('Error finding AI related terms:', error);
+      return [];
+    }
   }
 
-  static async getWordOfTheDay(): Promise<DictionaryEntry> {
-    // Simple implementation - in production would be more sophisticated
-    const today = new Date().getDate();
-    const index = today % this.dictionaryData.length;
-    return this.dictionaryData[index];
+  static async getWordOfTheDay(): Promise<DictionaryEntry | null> {
+    try {
+      return await firestoreService.getWordOfTheDay();
+    } catch (error) {
+      console.error('Error getting word of the day:', error);
+      return null;
+    }
   }
 
   static async getRandomWords(count: number = 5): Promise<DictionaryEntry[]> {
-    const shuffled = [...this.dictionaryData].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, count);
+    try {
+      return await firestoreService.getRandomWords(count);
+    } catch (error) {
+      console.error('Error getting random words:', error);
+      return [];
+    }
   }
 
   static async getPopularWords(limit: number = 10): Promise<DictionaryEntry[]> {
-    return this.dictionaryData
-      .sort((a, b) => b.frequency - a.frequency)
-      .slice(0, limit);
+    try {
+      return await firestoreService.getPopularWords(limit);
+    } catch (error) {
+      console.error('Error getting popular words:', error);
+      return [];
+    }
   }
 
   static async getWordsByJLPTLevel(level: string): Promise<DictionaryEntry[]> {
-    return this.dictionaryData.filter(entry => entry.jlptLevel === level);
+    try {
+      return await firestoreService.getWordsByJLPTLevel(level);
+    } catch (error) {
+      console.error('Error getting words by JLPT level:', error);
+      return [];
+    }
   }
 
   static async getWordsByTag(tag: string): Promise<DictionaryEntry[]> {
-    return this.dictionaryData.filter(entry => entry.tags.includes(tag));
+    try {
+      return await firestoreService.getWordsByTag(tag);
+    } catch (error) {
+      console.error('Error getting words by tag:', error);
+      return [];
+    }
   }
 
   // Text-to-speech for pronunciation

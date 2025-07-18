@@ -169,9 +169,9 @@ const SentenceAnalyzer: React.FC = () => {
 
       {/* Analysis Results */}
       {analysis && (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Analysis */}
-          <div className="xl:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-6">
             {/* Basic Info */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">

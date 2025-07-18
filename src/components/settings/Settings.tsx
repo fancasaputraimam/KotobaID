@@ -251,16 +251,16 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {/* Sidebar */}
-        <div className="lg:col-span-1">
+        <div className="md:col-span-1">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <nav className="space-y-2">
+            <nav className="flex md:flex-col space-x-2 md:space-x-0 md:space-y-2 overflow-x-auto md:overflow-x-visible scrollbar-hide">
               {sections.map((section) => (
                 <button
                   key={section.id}
                   onClick={() => setActiveSection(section.id)}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                  className={`flex-shrink-0 md:w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors whitespace-nowrap ${
                     activeSection === section.id
                       ? 'bg-blue-50 text-blue-700 border border-blue-200'
                       : 'text-gray-700 hover:bg-gray-50'
@@ -275,14 +275,14 @@ const Settings: React.FC = () => {
         </div>
 
         {/* Main Content */}
-        <div className="lg:col-span-3">
+        <div className="md:col-span-3">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             {/* Appearance Settings */}
             {activeSection === 'appearance' && (
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Tema</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {(['light', 'dark', 'system'] as const).map((theme) => (
                       <button
                         key={theme}
@@ -341,7 +341,7 @@ const Settings: React.FC = () => {
 
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Waktu Belajar Favorit</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {[
                       { value: 'morning', label: 'Pagi', icon: '🌅' },
                       { value: 'afternoon', label: 'Siang', icon: '☀️' },
@@ -368,7 +368,7 @@ const Settings: React.FC = () => {
 
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Level Kesulitan</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {[
                       { value: 'beginner', label: 'Pemula', color: 'green' },
                       { value: 'intermediate', label: 'Menengah', color: 'yellow' },
@@ -469,7 +469,7 @@ const Settings: React.FC = () => {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Ukuran Font</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {[
                       { value: 'small', label: 'Kecil' },
                       { value: 'medium', label: 'Sedang' },

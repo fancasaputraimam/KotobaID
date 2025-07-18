@@ -10,10 +10,13 @@ import {
   where, 
   orderBy, 
   limit,
-  writeBatch
+  writeBatch,
+  startAt,
+  endAt
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Kanji, Vocabulary, Grammar, Chapter, UserProgress } from '../types';
+import { DictionaryEntry, SearchFilters } from '../types/studyTools';
 
 class FirestoreService {
   // Kanji Operations
@@ -260,8 +263,183 @@ class FirestoreService {
     });
   }
 
-  // Check if kanji already exists (for import deduplication)
-  // Removed kanjiExists function - no longer checking for duplicates
+  // Dictionary Operations
+  async getDictionaryEntries(searchQuery: string, filters: SearchFilters = {}, page: number = 1, pageSize: number = 20): Promise<{entries: DictionaryEntry[], total: number}> {
+    try {
+      const dictRef = collection(db, 'dictionary');
+      let q = query(dictRef);
+
+      // Apply filters
+      if (filters.jlptLevel && filters.jlptLevel.length > 0) {
+        q = query(q, where('jlptLevel', 'in', filters.jlptLevel));
+      }
+      
+      if (filters.partOfSpeech && filters.partOfSpeech.length > 0) {
+        q = query(q, where('partOfSpeech', 'array-contains-any', filters.partOfSpeech));
+      }
+
+      if (filters.tags && filters.tags.length > 0) {
+        q = query(q, where('tags', 'array-contains-any', filters.tags));
+      }
+
+      // Add search by word or reading
+      if (searchQuery) {
+        q = query(q, where('word', '>=', searchQuery), where('word', '<=', searchQuery + '\uf8ff'));
+      }
+
+      // Add pagination
+      q = query(q, orderBy('frequency', 'desc'), limit(pageSize));
+
+      const snapshot = await getDocs(q);
+      const entries = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate() || new Date(),
+        updatedAt: doc.data().updatedAt?.toDate() || new Date()
+      })) as DictionaryEntry[];
+
+      // Filter by search query in memory (more flexible search)
+      const filteredEntries = entries.filter(entry => {
+        if (!searchQuery) return true;
+        const query = searchQuery.toLowerCase();
+        return (
+          entry.word.toLowerCase().includes(query) ||
+          entry.reading.toLowerCase().includes(query) ||
+          entry.meanings.some(meaning => 
+            meaning.indonesian.toLowerCase().includes(query) ||
+            meaning.definition.toLowerCase().includes(query)
+          )
+        );
+      });
+
+      return {
+        entries: filteredEntries,
+        total: filteredEntries.length
+      };
+    } catch (error) {
+      console.error('Error getting dictionary entries:', error);
+      return { entries: [], total: 0 };
+    }
+  }
+
+  async getWordOfTheDay(): Promise<DictionaryEntry | null> {
+    try {
+      // Get a random word from popular words
+      const dictRef = collection(db, 'dictionary');
+      const q = query(dictRef, where('frequency', '>=', 4), orderBy('frequency', 'desc'), limit(10));
+      const snapshot = await getDocs(q);
+      
+      if (snapshot.empty) return null;
+      
+      const words = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate() || new Date(),
+        updatedAt: doc.data().updatedAt?.toDate() || new Date()
+      })) as DictionaryEntry[];
+
+      // Select word based on current date
+      const today = new Date().getDate();
+      const selectedWord = words[today % words.length];
+      
+      return selectedWord;
+    } catch (error) {
+      console.error('Error getting word of the day:', error);
+      return null;
+    }
+  }
+
+  async getRandomWords(count: number = 5): Promise<DictionaryEntry[]> {
+    try {
+      const dictRef = collection(db, 'dictionary');
+      const q = query(dictRef, orderBy('frequency', 'desc'), limit(count * 2));
+      const snapshot = await getDocs(q);
+      
+      const words = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate() || new Date(),
+        updatedAt: doc.data().updatedAt?.toDate() || new Date()
+      })) as DictionaryEntry[];
+
+      // Shuffle and return requested count
+      const shuffled = words.sort(() => 0.5 - Math.random());
+      return shuffled.slice(0, count);
+    } catch (error) {
+      console.error('Error getting random words:', error);
+      return [];
+    }
+  }
+
+  async getPopularWords(limit: number = 10): Promise<DictionaryEntry[]> {
+    try {
+      const dictRef = collection(db, 'dictionary');
+      const q = query(dictRef, orderBy('frequency', 'desc'), limit(limit));
+      const snapshot = await getDocs(q);
+      
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate() || new Date(),
+        updatedAt: doc.data().updatedAt?.toDate() || new Date()
+      })) as DictionaryEntry[];
+    } catch (error) {
+      console.error('Error getting popular words:', error);
+      return [];
+    }
+  }
+
+  async getWordsByJLPTLevel(level: string): Promise<DictionaryEntry[]> {
+    try {
+      const dictRef = collection(db, 'dictionary');
+      const q = query(dictRef, where('jlptLevel', '==', level), orderBy('frequency', 'desc'));
+      const snapshot = await getDocs(q);
+      
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate() || new Date(),
+        updatedAt: doc.data().updatedAt?.toDate() || new Date()
+      })) as DictionaryEntry[];
+    } catch (error) {
+      console.error('Error getting words by JLPT level:', error);
+      return [];
+    }
+  }
+
+  async getWordsByTag(tag: string): Promise<DictionaryEntry[]> {
+    try {
+      const dictRef = collection(db, 'dictionary');
+      const q = query(dictRef, where('tags', 'array-contains', tag), orderBy('frequency', 'desc'));
+      const snapshot = await getDocs(q);
+      
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate() || new Date(),
+        updatedAt: doc.data().updatedAt?.toDate() || new Date()
+      })) as DictionaryEntry[];
+    } catch (error) {
+      console.error('Error getting words by tag:', error);
+      return [];
+    }
+  }
+
+  async addDictionaryEntry(entry: Omit<DictionaryEntry, 'id'>): Promise<string> {
+    try {
+      const dictRef = collection(db, 'dictionary');
+      const docRef = doc(dictRef);
+      await setDoc(docRef, {
+        ...entry,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      return docRef.id;
+    } catch (error) {
+      console.error('Error adding dictionary entry:', error);
+      throw error;
+    }
+  }
 }
 
 export const firestoreService = new FirestoreService();

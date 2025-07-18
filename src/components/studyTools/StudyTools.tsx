@@ -101,7 +101,7 @@ const StudyTools: React.FC = () => {
         </div>
 
         {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {features.map((feature, index) => (
             <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center space-x-3 mb-3">
@@ -116,12 +116,12 @@ const StudyTools: React.FC = () => {
         {/* Tab Navigation */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
           <div className="border-b border-gray-200">
-            <nav className="flex">
+            <nav className="flex overflow-x-auto scrollbar-hide">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 flex items-center justify-center space-x-3 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                  className={`flex-1 flex items-center justify-center space-x-3 px-4 md:px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'border-blue-500 text-blue-600 bg-blue-50'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -130,7 +130,7 @@ const StudyTools: React.FC = () => {
                   <tab.icon className="h-5 w-5" />
                   <div className="text-left">
                     <div className="font-semibold">{tab.label}</div>
-                    <div className="text-xs text-gray-500">{tab.description}</div>
+                    <div className="text-xs text-gray-500 hidden md:block">{tab.description}</div>
                   </div>
                 </button>
               ))}

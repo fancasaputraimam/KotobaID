@@ -46,6 +46,7 @@ const Dictionary: React.FC = () => {
       setWordOfTheDay(word);
     } catch (error) {
       console.error('Error loading word of the day:', error);
+      setWordOfTheDay(null);
     }
   };
 
@@ -352,7 +353,7 @@ const Dictionary: React.FC = () => {
             <TrendingUp className="h-5 w-5 mr-2" />
             Popular Words
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {popularWords.map((word) => (
               <div
                 key={word.id}
@@ -380,9 +381,9 @@ const Dictionary: React.FC = () => {
 
       {/* Search Results */}
       {searchResults && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Results List */}
-          <div className="lg:col-span-1 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="xl:col-span-1 bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Search Results ({searchResults.total})
             </h3>
@@ -469,7 +470,7 @@ const Dictionary: React.FC = () => {
           </div>
 
           {/* Entry Details */}
-          <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="xl:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
             {selectedEntry ? (
               <div className="space-y-6">
                 {/* Header */}
@@ -553,7 +554,7 @@ const Dictionary: React.FC = () => {
                 {selectedEntry.kanji && selectedEntry.kanji.length > 0 && (
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-3">Kanji Breakdown</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {selectedEntry.kanji.map((kanji, idx) => (
                         <div key={idx} className="p-4 border border-gray-200 rounded-lg">
                           <div className="text-2xl font-bold text-gray-900 mb-2">{kanji.character}</div>
