@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useWriting } from '../../contexts/WritingContext';
 import { useProgress } from '../../contexts/ProgressContext';
 import { azureOpenAI } from '../../services/azureOpenAI';
+import { tensorflowService, PredictionResult, KanjiPracticeData, CharacterMode } from '../../services/tensorflowService';
 import { CharacterData } from '../../types/writing';
 import { getCharacterData } from '../../data/strokeData';
 import { 
@@ -92,14 +93,27 @@ const WritingPractice: React.FC = () => {
   const [brushColor, setBrushColor] = useState('#000000');
   const [showGrid, setShowGrid] = useState(true);
   const [gridStyle, setGridStyle] = useState<'guide' | 'dots' | 'minimal'>('guide');
+  const [showCharacterGuide, setShowCharacterGuide] = useState(true);
+  const [guideOpacity, setGuideOpacity] = useState(0.2);
 
   // Character and practice state
   const [recommendedChars, setRecommendedChars] = useState<CharacterData[]>([]);
   const [currentCharIndex, setCurrentCharIndex] = useState(0);
-  const [practiceMode, setPracticeMode] = useState<'guided' | 'free' | 'test'>('guided');
+  const [practiceMode, setPracticeMode] = useState<'guided' | 'free' | 'test' | 'cnn'>('cnn');
   const [difficulty, setDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
   const [customText, setCustomText] = useState('');
-  const [selectedCharacterSet, setSelectedCharacterSet] = useState<'hiragana' | 'katakana' | 'kanji' | 'custom'>('hiragana');
+  const [selectedCharacterSet, setSelectedCharacterSet] = useState<CharacterMode>('hiragana');
+  
+  // CNN and TensorFlow.js states
+  const [cnnPrediction, setCnnPrediction] = useState<PredictionResult | null>(null);
+  const [isModelLoading, setIsModelLoading] = useState(false);
+  const [modelReady, setModelReady] = useState(false);
+  const [realTimePrediction, setRealTimePrediction] = useState(true);
+  const [accuracyScore, setAccuracyScore] = useState(0);
+  const [targetCharacter, setTargetCharacter] = useState<string>('');
+  const [kanjiPracticeData, setKanjiPracticeData] = useState<KanjiPracticeData | null>(null);
+  const [predictionHistory, setPredictionHistory] = useState<PredictionResult[]>([]);
+  const [isTrainingMode, setIsTrainingMode] = useState(false);
 
   // AI and feedback state
   const [aiAnalysis, setAiAnalysis] = useState<WritingAnalysis | null>(null);
@@ -153,11 +167,45 @@ const WritingPractice: React.FC = () => {
     loadCharacters();
   }, [selectedCharacterSet, difficulty]);
 
+  // Initialize TensorFlow.js models
+  useEffect(() => {
+    const initializeModels = async () => {
+      setIsModelLoading(true);
+      try {
+        await tensorflowService.initializeAllModels();
+        setModelReady(true);
+        console.log('TensorFlow.js models initialized');
+      } catch (error) {
+        console.error('Error initializing TensorFlow.js models:', error);
+      } finally {
+        setIsModelLoading(false);
+      }
+    };
+
+    initializeModels();
+    
+    // Cleanup on unmount
+    return () => {
+      tensorflowService.dispose();
+    };
+  }, []);
+
+  // Set target character when character set or mode changes
+  useEffect(() => {
+    if (selectedCharacterSet === 'kanji' && practiceMode === 'cnn') {
+      loadRandomKanji();
+    } else if (practiceMode === 'cnn') {
+      const characters = tensorflowService.getCharacterSet(selectedCharacterSet);
+      const randomChar = characters[Math.floor(Math.random() * characters.length)];
+      setTargetCharacter(randomChar);
+    }
+  }, [selectedCharacterSet, practiceMode]);
+
   useEffect(() => {
     if (recommendedChars.length > 0) {
       resetCanvas();
     }
-  }, [currentCharIndex, recommendedChars, showGrid, gridStyle]);
+  }, [currentCharIndex, recommendedChars, showGrid, gridStyle, showCharacterGuide, practiceMode, guideOpacity]);
 
   useEffect(() => {
     // Initialize canvas size based on screen size
@@ -174,6 +222,86 @@ const WritingPractice: React.FC = () => {
   const currentChar = recommendedChars[currentCharIndex];
   const progress = currentChar ? getCharacterProgress(currentChar.character) : null;
 
+  // Load random Kanji for practice
+  const loadRandomKanji = async () => {
+    try {
+      const kanji = await tensorflowService.getRandomKanjiForPractice();
+      setKanjiPracticeData(kanji);
+      setTargetCharacter(kanji.character);
+    } catch (error) {
+      console.error('Error loading random Kanji:', error);
+    }
+  };
+
+  // CNN prediction function
+  const predictWithCNN = async (canvas: HTMLCanvasElement) => {
+    if (!modelReady || !canvas) return;
+
+    try {
+      const prediction = await tensorflowService.predictCharacter(canvas, selectedCharacterSet);
+      setCnnPrediction(prediction);
+      
+      // Calculate accuracy if we have a target character
+      if (targetCharacter) {
+        const accuracy = tensorflowService.calculateAccuracy(
+          prediction.character, 
+          targetCharacter, 
+          prediction.confidence
+        );
+        setAccuracyScore(accuracy);
+      }
+      
+      // Add to prediction history
+      setPredictionHistory(prev => [prediction, ...prev.slice(0, 9)]);
+      
+      return prediction;
+    } catch (error) {
+      console.error('CNN prediction error:', error);
+      return null;
+    }
+  };
+
+  // Real-time prediction during drawing
+  const handleRealtimePrediction = async () => {
+    if (!realTimePrediction || !canvasRef.current || userStrokes.length === 0) return;
+    
+    // Debounce predictions to avoid too many calls
+    setTimeout(() => {
+      predictWithCNN(canvasRef.current!);
+    }, 300);
+  };
+
+  // Train models with user data
+  const trainModels = async () => {
+    if (!modelReady) return;
+    
+    setIsTrainingMode(true);
+    try {
+      await tensorflowService.trainAllModels();
+      console.log('Models trained successfully');
+    } catch (error) {
+      console.error('Error training models:', error);
+    } finally {
+      setIsTrainingMode(false);
+    }
+  };
+
+  // Get next character for practice
+  const getNextCharacter = () => {
+    if (selectedCharacterSet === 'kanji') {
+      loadRandomKanji();
+    } else {
+      const characters = tensorflowService.getCharacterSet(selectedCharacterSet);
+      const randomChar = characters[Math.floor(Math.random() * characters.length)];
+      setTargetCharacter(randomChar);
+    }
+    
+    // Reset canvas and predictions
+    resetCanvas();
+    setCnnPrediction(null);
+    setAccuracyScore(0);
+  };
+
   const resetCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -187,6 +315,11 @@ const WritingPractice: React.FC = () => {
     // Draw background
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw character guide (light gray background)
+    if (currentChar && showCharacterGuide && practiceMode === 'guided') {
+      drawCharacterGuide(ctx, currentChar.character);
+    }
     
     // Draw grid based on style
     if (showGrid) {
@@ -204,13 +337,42 @@ const WritingPractice: React.FC = () => {
     setAiAnalysis(null);
   };
 
+  const drawCharacterGuide = (ctx: CanvasRenderingContext2D, character: string) => {
+    const width = ctx.canvas.width;
+    const height = ctx.canvas.height;
+    
+    // Save current context
+    ctx.save();
+    
+    // Calculate optimal font size (75% of canvas size)
+    const fontSize = Math.min(width, height) * 0.75;
+    
+    // Set font properties - using specific Japanese fonts for better character display
+    ctx.font = `${fontSize}px 'Noto Sans CJK JP', 'Hiragino Kaku Gothic Pro', 'Yu Gothic', 'Meiryo', 'MS Gothic', serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    // Draw character fill with adjustable opacity
+    ctx.fillStyle = `rgba(156, 163, 175, ${guideOpacity * 0.5})`;
+    ctx.fillText(character, width / 2, height / 2);
+    
+    // Draw character outline for better guidance
+    ctx.strokeStyle = `rgba(156, 163, 175, ${guideOpacity})`;
+    ctx.lineWidth = 1.5;
+    ctx.strokeText(character, width / 2, height / 2);
+    
+    // Restore context
+    ctx.restore();
+  };
+
   const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-    ctx.strokeStyle = '#e5e7eb';
-    ctx.lineWidth = 1;
+    ctx.save();
     
     switch (gridStyle) {
       case 'guide':
-        // Draw center lines
+        // Main center lines (stronger)
+        ctx.strokeStyle = '#d1d5db';
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(width / 2, 0);
         ctx.lineTo(width / 2, height);
@@ -218,8 +380,9 @@ const WritingPractice: React.FC = () => {
         ctx.lineTo(width, height / 2);
         ctx.stroke();
         
-        // Draw quarter lines
-        ctx.strokeStyle = '#f3f4f6';
+        // Quarter lines (lighter)
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(width / 4, 0);
         ctx.lineTo(width / 4, height);
@@ -230,13 +393,24 @@ const WritingPractice: React.FC = () => {
         ctx.moveTo(0, 3 * height / 4);
         ctx.lineTo(width, 3 * height / 4);
         ctx.stroke();
+        
+        // Diagonal guidelines for better character positioning
+        ctx.strokeStyle = '#f3f4f6';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(width, height);
+        ctx.moveTo(width, 0);
+        ctx.lineTo(0, height);
+        ctx.stroke();
         break;
         
       case 'dots':
-        // Draw dot grid
+        // Draw dot grid with better spacing
         ctx.fillStyle = '#e5e7eb';
-        for (let x = 0; x <= width; x += 20) {
-          for (let y = 0; y <= height; y += 20) {
+        const spacing = Math.min(width, height) / 15;
+        for (let x = 0; x <= width; x += spacing) {
+          for (let y = 0; y <= height; y += spacing) {
             ctx.beginPath();
             ctx.arc(x, y, 1, 0, 2 * Math.PI);
             ctx.fill();
@@ -246,6 +420,8 @@ const WritingPractice: React.FC = () => {
         
       case 'minimal':
         // Just center lines
+        ctx.strokeStyle = '#d1d5db';
+        ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(width / 2, 0);
         ctx.lineTo(width / 2, height);
@@ -254,6 +430,8 @@ const WritingPractice: React.FC = () => {
         ctx.stroke();
         break;
     }
+    
+    ctx.restore();
   };
 
   const analyzeWritingWithAI = async (userStrokes: Array<{path: string, timestamp: number, duration: number}>) => {
@@ -461,16 +639,25 @@ const WritingPractice: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    resetCanvas();
+    // Clear canvas and draw background
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Show character background lightly
-    ctx.fillStyle = 'rgba(156, 163, 175, 0.2)';
-    ctx.font = `bold ${canvas.width * 0.6}px serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(currentChar.character, canvas.width / 2, canvas.height / 2);
+    // Draw grid
+    if (showGrid) {
+      drawGrid(ctx, canvas.width, canvas.height);
+    }
 
-    // Animate each stroke
+    // Draw character guide (very light)
+    drawCharacterGuide(ctx, currentChar.character);
+
+    // Draw border
+    ctx.strokeStyle = '#d1d5db';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+    // If we have stroke data, animate each stroke
     if (currentChar.strokes && currentChar.strokes.length > 0) {
       for (let i = 0; i < currentChar.strokes.length; i++) {
         const stroke = currentChar.strokes[i];
@@ -484,7 +671,7 @@ const WritingPractice: React.FC = () => {
 
             // Draw stroke path
             ctx.strokeStyle = '#ef4444';
-            ctx.lineWidth = brushSize;
+            ctx.lineWidth = brushSize + 2;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             
@@ -492,9 +679,28 @@ const WritingPractice: React.FC = () => {
             ctx.stroke(path);
             
             resolve(undefined);
-          }, (stroke.delay || 500) * (i + 1));
+          }, (stroke.delay || 800) * (i + 1));
         });
       }
+    } else {
+      // If no stroke data available, show a simple demo
+      await new Promise(resolve => {
+        setTimeout(() => {
+          // Draw a simple animation showing the character being written
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = brushSize + 2;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          
+          // Draw the character outline in red
+          ctx.font = `${Math.min(canvas.width, canvas.height) * 0.75}px 'Noto Sans CJK JP', 'Hiragino Kaku Gothic Pro', 'Yu Gothic', 'Meiryo', serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.strokeText(currentChar.character, canvas.width / 2, canvas.height / 2);
+          
+          resolve(undefined);
+        }, 1000);
+      });
     }
 
     setIsAnimating(false);
@@ -578,6 +784,11 @@ const WritingPractice: React.FC = () => {
     
     setUserStrokes(prev => [...prev, strokeData]);
     setCurrentStroke(null);
+    
+    // Trigger real-time prediction after stroke is completed
+    if (practiceMode === 'cnn') {
+      handleRealtimePrediction();
+    }
   };
 
   const nextCharacter = () => {
@@ -720,13 +931,12 @@ const WritingPractice: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">Set Karakter</label>
               <select
                 value={selectedCharacterSet}
-                onChange={(e) => setSelectedCharacterSet(e.target.value as any)}
+                onChange={(e) => setSelectedCharacterSet(e.target.value as CharacterMode)}
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
               >
                 <option value="hiragana">Hiragana</option>
                 <option value="katakana">Katakana</option>
                 <option value="kanji">Kanji</option>
-                <option value="custom">Kustom</option>
               </select>
             </div>
 
@@ -753,6 +963,7 @@ const WritingPractice: React.FC = () => {
                 <option value="guided">Terpandu</option>
                 <option value="free">Bebas</option>
                 <option value="test">Ujian</option>
+                <option value="cnn">CNN Recognition</option>
               </select>
             </div>
 
@@ -791,6 +1002,83 @@ const WritingPractice: React.FC = () => {
                 <option value="minimal">Minimal</option>
               </select>
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Opacity Panduan Karakter</label>
+              <input
+                type="range"
+                min="0.1"
+                max="0.8"
+                step="0.1"
+                value={guideOpacity}
+                onChange={(e) => setGuideOpacity(Number(e.target.value))}
+                className="w-full"
+              />
+              <span className="text-sm text-gray-500">{Math.round(guideOpacity * 100)}%</span>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tampilan Panduan</label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="showCharacterGuide"
+                  checked={showCharacterGuide}
+                  onChange={(e) => setShowCharacterGuide(e.target.checked)}
+                  className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                />
+                <label htmlFor="showCharacterGuide" className="text-sm text-gray-700">
+                  Tampilkan panduan karakter
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">CNN Settings</label>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="realTimePrediction"
+                    checked={realTimePrediction}
+                    onChange={(e) => setRealTimePrediction(e.target.checked)}
+                    className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="realTimePrediction" className="text-sm text-gray-700">
+                    Prediksi real-time
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className={`px-2 py-1 rounded text-xs ${
+                    modelReady ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {modelReady ? 'Model Ready' : 'Model Loading'}
+                  </span>
+                  {isModelLoading && <LoadingSpinner size="sm" />}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Training</label>
+              <button
+                onClick={trainModels}
+                disabled={isTrainingMode || !modelReady}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+              >
+                {isTrainingMode ? (
+                  <>
+                    <LoadingSpinner size="sm" />
+                    <span>Training...</span>
+                  </>
+                ) : (
+                  <>
+                    <Brain className="h-4 w-4" />
+                    <span>Train Models</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -803,13 +1091,22 @@ const WritingPractice: React.FC = () => {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="text-center">
               <div className="text-8xl font-bold text-gray-900 mb-4">
-                {currentChar?.character || '?'}
+                {practiceMode === 'cnn' ? 
+                  (targetCharacter || kanjiPracticeData?.character || '?') : 
+                  (currentChar?.character || '?')
+                }
               </div>
               <div className="text-xl text-gray-600 mb-2">
-                {currentChar?.reading || 'Loading...'}
+                {practiceMode === 'cnn' ? 
+                  (kanjiPracticeData?.reading || targetCharacter || 'Loading...') : 
+                  (currentChar?.reading || 'Loading...')
+                }
               </div>
               <div className="text-lg text-gray-700 mb-4">
-                {currentChar?.meaning || 'Loading...'}
+                {practiceMode === 'cnn' ? 
+                  (kanjiPracticeData?.meaning || `${selectedCharacterSet} character`) : 
+                  (currentChar?.meaning || 'Loading...')
+                }
               </div>
               
               {currentChar && (
@@ -984,12 +1281,24 @@ const WritingPractice: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-900">Area Latihan</h3>
               <div className="flex items-center space-x-2">
                 <button
+                  onClick={() => setShowCharacterGuide(!showCharacterGuide)}
+                  className={`p-2 rounded-lg ${
+                    showCharacterGuide 
+                      ? 'bg-blue-100 text-blue-600' 
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                  title="Toggle Character Guide"
+                >
+                  <Type className="h-4 w-4" />
+                </button>
+                <button
                   onClick={() => setShowGrid(!showGrid)}
                   className={`p-2 rounded-lg ${
                     showGrid 
                       ? 'bg-orange-100 text-orange-600' 
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
+                  title="Toggle Grid"
                 >
                   <Grid className="h-4 w-4" />
                 </button>
@@ -1009,29 +1318,44 @@ const WritingPractice: React.FC = () => {
             </div>
 
             <div className="flex justify-center">
-              <canvas
-                ref={canvasRef}
-                width={canvasSize.width}
-                height={canvasSize.height}
-                className="border-2 border-gray-300 rounded-lg cursor-crosshair bg-white shadow-inner"
-                style={{ maxWidth: '100%', height: 'auto' }}
-                onMouseDown={(e) => startDrawing(getMousePos(e))}
-                onMouseMove={(e) => draw(getMousePos(e))}
-                onMouseUp={stopDrawing}
-                onMouseLeave={stopDrawing}
-                onTouchStart={(e) => {
-                  e.preventDefault();
-                  startDrawing(getTouchPos(e));
-                }}
-                onTouchMove={(e) => {
-                  e.preventDefault();
-                  draw(getTouchPos(e));
-                }}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  stopDrawing();
-                }}
-              />
+              <div className="relative">
+                <canvas
+                  ref={canvasRef}
+                  width={canvasSize.width}
+                  height={canvasSize.height}
+                  className="border-2 border-gray-300 rounded-lg cursor-crosshair bg-white shadow-inner"
+                  style={{ 
+                    maxWidth: '100%', 
+                    height: 'auto',
+                    touchAction: 'none'
+                  }}
+                  onMouseDown={(e) => startDrawing(getMousePos(e))}
+                  onMouseMove={(e) => draw(getMousePos(e))}
+                  onMouseUp={stopDrawing}
+                  onMouseLeave={stopDrawing}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    startDrawing(getTouchPos(e));
+                  }}
+                  onTouchMove={(e) => {
+                    e.preventDefault();
+                    draw(getTouchPos(e));
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    stopDrawing();
+                  }}
+                />
+                {/* Canvas overlay for better user feedback */}
+                <div className="absolute top-2 left-2 text-xs text-gray-400 pointer-events-none">
+                  {currentChar?.character || '?'}
+                </div>
+                {userStrokes.length > 0 && (
+                  <div className="absolute top-2 right-2 text-xs text-gray-400 pointer-events-none">
+                    {userStrokes.length} goresan
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Canvas Controls */}
@@ -1052,23 +1376,116 @@ const WritingPractice: React.FC = () => {
                 <span>Simpan</span>
               </button>
               
-              <button
-                onClick={generateWritingFeedback}
-                disabled={userStrokes.length === 0 || aiLoading}
-                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-              >
-                {aiLoading ? (
-                  <LoadingSpinner size="sm" />
-                ) : (
+              {practiceMode === 'cnn' ? (
+                <button
+                  onClick={() => predictWithCNN(canvasRef.current!)}
+                  disabled={userStrokes.length === 0 || !modelReady}
+                  className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                >
                   <Brain className="h-4 w-4" />
-                )}
-                <span>Analisis AI</span>
-              </button>
+                  <span>Prediksi CNN</span>
+                </button>
+              ) : (
+                <button
+                  onClick={generateWritingFeedback}
+                  disabled={userStrokes.length === 0 || aiLoading}
+                  className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                >
+                  {aiLoading ? (
+                    <LoadingSpinner size="sm" />
+                  ) : (
+                    <Brain className="h-4 w-4" />
+                  )}
+                  <span>Analisis AI</span>
+                </button>
+              )}
+              
+              {practiceMode === 'cnn' && (
+                <button
+                  onClick={getNextCharacter}
+                  className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  <span>Karakter Baru</span>
+                </button>
+              )}
             </div>
           </div>
 
+          {/* CNN Prediction Results */}
+          {practiceMode === 'cnn' && cnnPrediction && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Brain className="h-5 w-5 mr-2 text-purple-500" />
+                CNN Prediction
+              </h3>
+              
+              <div className="space-y-4">
+                <div className="flex items-center space-x-4">
+                  <div className="text-6xl font-bold text-purple-600">
+                    {cnnPrediction.character}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm text-gray-600 mb-1">Confidence</div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div 
+                        className="bg-purple-500 h-3 rounded-full transition-all duration-300"
+                        style={{ width: `${cnnPrediction.confidence}%` }}
+                      />
+                    </div>
+                    <div className="text-lg font-bold text-purple-600 mt-1">
+                      {cnnPrediction.confidence.toFixed(1)}%
+                    </div>
+                  </div>
+                </div>
+                
+                {targetCharacter && (
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700">Accuracy Score</span>
+                      <span className="text-2xl font-bold text-orange-600">
+                        {accuracyScore.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-orange-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${accuracyScore}%` }}
+                      />
+                    </div>
+                    <div className="text-xs text-gray-600 mt-1">
+                      {cnnPrediction.character === targetCharacter ? '✓ Correct!' : '✗ Try again'}
+                    </div>
+                  </div>
+                )}
+                
+                <div>
+                  <h4 className="font-medium text-gray-700 mb-2">Top Predictions</h4>
+                  <div className="space-y-2">
+                    {cnnPrediction.predictions.slice(0, 5).map((pred, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xl font-medium">{pred.character}</span>
+                          <span className="text-sm text-gray-600">
+                            {(pred.probability * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="w-20 bg-gray-200 rounded-full h-1">
+                          <div 
+                            className="bg-purple-400 h-1 rounded-full"
+                            style={{ width: `${pred.probability * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Writing Feedback */}
-          {writingFeedback && (
+          {practiceMode !== 'cnn' && writingFeedback && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <Sparkles className="h-5 w-5 mr-2 text-yellow-500" />

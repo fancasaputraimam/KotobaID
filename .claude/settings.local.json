@@ -9,7 +9,8 @@
       "Bash(npm run dev:*)",
       "Bash(ls:*)",
       "Bash(rm:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": []
   }
