@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useProgress } from '../../contexts/ProgressContext';
 import { 
@@ -75,6 +75,8 @@ const NewModernDashboard: React.FC = () => {
   const [chatLoading, setChatLoading] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
   const [showQuickActions, setShowQuickActions] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
 
   // Navigation categories for top navigation
   const navigationCategories = [
@@ -128,6 +130,23 @@ const NewModernDashboard: React.FC = () => {
       console.error('Logout failed:', error);
     }
   };
+
+  // Handle click outside profile dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+        setProfileDropdownOpen(false);
+      }
+    };
+
+    if (profileDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [profileDropdownOpen]);
 
   useEffect(() => {
     const loadProgress = async () => {
@@ -315,8 +334,11 @@ const NewModernDashboard: React.FC = () => {
               </button>
 
               {/* User Menu */}
-              <div className="relative">
-                <div className="flex items-center space-x-3 p-2 rounded-lg">
+              <div className="relative" ref={profileDropdownRef}>
+                <button 
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-all duration-300 hover:scale-105"
+                >
                   <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-medium">
                       {(currentUser?.displayName || currentUser?.email || 'U').charAt(0).toUpperCase()}
@@ -328,27 +350,41 @@ const NewModernDashboard: React.FC = () => {
                     </p>
                     <p className="text-xs text-gray-500">Premium</p>
                   </div>
-                </div>
+                  <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-300 ${
+                    profileDropdownOpen ? 'rotate-180' : ''
+                  }`} />
+                </button>
 
-                {/* User Dropdown - Hidden */}
-                <div className="hidden">
-                  <div className="p-2">
-                    <button
-                      onClick={() => setActiveTab('settings')}
-                      className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-all duration-300 hover:scale-105"
-                    >
-                      <Settings className="h-4 w-4 transition-transform duration-300" />
-                      <span className="text-sm">Settings</span>
-                    </button>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-red-50 text-red-600 transition-all duration-300 hover:scale-105"
-                    >
-                      <LogOut className="h-4 w-4 transition-transform duration-300" />
-                      <span className="text-sm">Logout</span>
-                    </button>
+                {/* User Dropdown */}
+                {profileDropdownOpen && (
+                  <div className="absolute top-full right-0 w-48 bg-white rounded-xl shadow-lg border border-gray-200 mt-2 z-50 transition-all duration-300 ease-out transform scale-100 opacity-100"
+                    style={{
+                      animation: 'slideInDown 0.3s ease-out forwards'
+                    }}>
+                    <div className="p-2">
+                      <button
+                        onClick={() => {
+                          setActiveTab('settings');
+                          setProfileDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-all duration-300 hover:scale-105"
+                      >
+                        <Settings className="h-4 w-4 transition-transform duration-300" />
+                        <span className="text-sm">Settings</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleLogout();
+                          setProfileDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-red-50 text-red-600 transition-all duration-300 hover:scale-105"
+                      >
+                        <LogOut className="h-4 w-4 transition-transform duration-300" />
+                        <span className="text-sm">Logout</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Mobile Menu Button */}
