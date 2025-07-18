@@ -8,7 +8,7 @@ import { AudioProvider } from './contexts/AudioContext';
 import UpdatedLandingPage from './components/layout/UpdatedLandingPage';
 import AuthPage from './components/AuthPage';
 import AdminDashboard from './components/admin/AdminDashboard';
-import ModernDashboard from './components/layout/ModernDashboard';
+import NewModernDashboard from './components/layout/NewModernDashboard';
 import LoadingSpinner from './components/common/LoadingSpinner';
 
 const AppContent: React.FC = () => {
@@ -43,7 +43,7 @@ const AppContent: React.FC = () => {
       <FlashcardProvider>
         <WritingProvider>
           <AudioProvider>
-            <ModernDashboard />
+            <NewModernDashboard />
           </AudioProvider>
         </WritingProvider>
       </FlashcardProvider>
