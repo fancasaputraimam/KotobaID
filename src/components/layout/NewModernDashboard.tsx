@@ -64,6 +64,7 @@ import AnalyticsDashboard from '../analytics/AnalyticsDashboard';
 import AIRecommendations from '../recommendations/AIRecommendations';
 import StudyTools from '../studyTools/StudyTools';
 import Settings from '../settings/Settings';
+import UserProfile from '../profile/UserProfile';
 
 const NewModernDashboard: React.FC = () => {
   const { currentUser, logout } = useAuth();
@@ -238,6 +239,8 @@ const NewModernDashboard: React.FC = () => {
         return <FlashcardManager />;
       case 'settings':
         return <Settings />;
+      case 'profile':
+        return <UserProfile />;
       default:
         return <DashboardHome userProgress={userProgress} onTabChange={setActiveTab} />;
     }
@@ -337,7 +340,10 @@ const NewModernDashboard: React.FC = () => {
               {/* User Menu */}
               <div className="relative" ref={profileDropdownRef}>
                 <button 
-                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  onClick={() => {
+                    setActiveTab('profile');
+                    setProfileDropdownOpen(!profileDropdownOpen);
+                  }}
                   className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-all duration-300 hover:scale-105"
                 >
                   <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
@@ -365,6 +371,7 @@ const NewModernDashboard: React.FC = () => {
                     <div className="p-2">
                       <button
                         onClick={() => {
+                          setActiveTab('profile');
                           setProfileDropdownOpen(false);
                         }}
                         className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-50 text-blue-700 transition-all duration-300 hover:scale-105"
