@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ProgressProvider } from './contexts/ProgressContext';
+import { FlashcardProvider } from './contexts/FlashcardContext';
+import { WritingProvider } from './contexts/WritingContext';
+import { AudioProvider } from './contexts/AudioContext';
 import LandingPage from './components/LandingPage';
 import AuthPage from './components/AuthPage';
 import AdminDashboard from './components/admin/AdminDashboard';
@@ -34,7 +38,17 @@ const AppContent: React.FC = () => {
   }
 
   // Regular users see the learning interface
-  return <LearningDashboard />;
+  return (
+    <ProgressProvider>
+      <FlashcardProvider>
+        <WritingProvider>
+          <AudioProvider>
+            <LearningDashboard />
+          </AudioProvider>
+        </WritingProvider>
+      </FlashcardProvider>
+    </ProgressProvider>
+  );
 };
 
 const App: React.FC = () => {

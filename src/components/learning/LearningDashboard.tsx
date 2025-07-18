@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useProgress } from '../../contexts/ProgressContext';
 import { 
   BookOpen, 
   Globe, 
   GraduationCap, 
   TrendingUp, 
   Clock,
-  LogOut
+  LogOut,
+  BarChart3,
+  Target,
+  Layers,
+  Settings,
+  FileText,
+  PieChart,
+  Lightbulb
 } from 'lucide-react';
 import KanjiLearning from './KanjiLearning';
 import GrammarLearning from './GrammarLearning';
@@ -21,23 +29,43 @@ import QuizAIPage from './QuizAIPage';
 import ExampleAIPage from './ExampleAIPage';
 import JLPTAIPage from './JLPTAIPage';
 import KanjiSearchPage from './KanjiSearchPage';
+import ProgressDashboard from '../progress/ProgressDashboard';
+import Settings from '../settings/Settings';
+import FlashcardStudy from '../flashcard/FlashcardStudy';
+import FlashcardManager from '../flashcard/FlashcardManager';
+import WritingPractice from '../writing/WritingPractice';
+import ListeningPractice from '../audio/ListeningPractice';
+import ReadingComprehension from '../reading/ReadingComprehension';
+import AnalyticsDashboard from '../analytics/AnalyticsDashboard';
+import AIRecommendations from '../recommendations/AIRecommendations';
+import StudyTools from '../studyTools/StudyTools';
 
 const LearningDashboard: React.FC = () => {
   const { currentUser, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState('kanji');
+  const [activeTab, setActiveTab] = useState('progress');
   const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [chatInput, setChatInput] = useState('');
   const [chatHistory, setChatHistory] = useState<{role: 'user'|'ai', content: string}[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
 
   const tabs = [
+    { id: 'progress', label: 'Progress', icon: BarChart3 },
+    { id: 'analytics', label: 'Analytics Detail', icon: PieChart },
+    { id: 'ai-recommendations', label: 'AI Recommendations', icon: Lightbulb },
+    { id: 'study-tools', label: 'Alat Belajar', icon: BookOpen },
+    { id: 'flashcard-study', label: 'Belajar Flashcard', icon: Layers },
+    { id: 'writing', label: 'Latihan Menulis', icon: Target },
+    { id: 'audio', label: 'Audio & Mendengar', icon: Clock },
+    { id: 'reading', label: 'Pemahaman Bacaan', icon: FileText },
     { id: 'kanji', label: 'Kanji', icon: BookOpen },
     { id: 'grammar', label: 'Tata Bahasa', icon: Globe },
     { id: 'vocabulary', label: 'Kosakata', icon: GraduationCap },
     { id: 'quiz', label: 'Kuis AI', icon: TrendingUp },
     { id: 'example', label: 'Contoh AI', icon: Clock },
     { id: 'jlpt', label: 'JLPT AI', icon: GraduationCap },
-    { id: 'kanji-search', label: 'Pencarian Kanji', icon: BookOpen }
+    { id: 'kanji-search', label: 'Pencarian Kanji', icon: BookOpen },
+    { id: 'flashcard-manager', label: 'Kelola Flashcard', icon: Layers },
+    { id: 'settings', label: 'Pengaturan', icon: Settings }
   ];
 
   const handleLogout = async () => {
@@ -264,6 +292,14 @@ const LearningDashboard: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow">
+          {activeTab === 'progress' && <ProgressDashboard />}
+          {activeTab === 'analytics' && <AnalyticsDashboard />}
+          {activeTab === 'ai-recommendations' && <AIRecommendations />}
+          {activeTab === 'study-tools' && <StudyTools />}
+          {activeTab === 'flashcard-study' && <FlashcardStudy />}
+          {activeTab === 'writing' && <WritingPractice />}
+          {activeTab === 'audio' && <ListeningPractice />}
+          {activeTab === 'reading' && <ReadingComprehension />}
           {activeTab === 'kanji' && <KanjiLearning />}
           {activeTab === 'grammar' && <GrammarLearning />}
           {activeTab === 'vocabulary' && <VocabularyLearning />}
@@ -271,6 +307,8 @@ const LearningDashboard: React.FC = () => {
           {activeTab === 'example' && <ExampleAIPage />}
           {activeTab === 'jlpt' && <JLPTAIPage />}
           {activeTab === 'kanji-search' && <KanjiSearchPage />}
+          {activeTab === 'flashcard-manager' && <FlashcardManager />}
+          {activeTab === 'settings' && <Settings />}
         </div>
       </div>
     </div>
