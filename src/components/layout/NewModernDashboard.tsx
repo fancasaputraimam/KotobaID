@@ -315,8 +315,8 @@ const NewModernDashboard: React.FC = () => {
               </button>
 
               {/* User Menu */}
-              <div className="relative group">
-                <button className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors">
+              <div className="relative">
+                <div className="flex items-center space-x-3 p-2 rounded-lg">
                   <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-medium">
                       {(currentUser?.displayName || currentUser?.email || 'U').charAt(0).toUpperCase()}
@@ -328,11 +328,10 @@ const NewModernDashboard: React.FC = () => {
                     </p>
                     <p className="text-xs text-gray-500">Premium</p>
                   </div>
-                  <ChevronDown className="h-4 w-4 text-gray-400" />
-                </button>
+                </div>
 
-                {/* User Dropdown */}
-                <div className="absolute top-full right-0 w-48 bg-white rounded-xl shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-out transform scale-95 group-hover:scale-100 mt-2">
+                {/* User Dropdown - Hidden */}
+                <div className="hidden">
                   <div className="p-2">
                     <button
                       onClick={() => setActiveTab('settings')}
