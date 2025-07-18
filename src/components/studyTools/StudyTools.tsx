@@ -85,33 +85,7 @@ const StudyTools: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg">
-                <BookOpen className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Study Tools</h1>
-                <p className="text-sm text-gray-600">Alat bantu belajar bahasa Jepang</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600">
-                <Clock className="h-4 w-4" />
-                <span>Powered by AI</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Overview */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="p-6 space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {stats.map((stat, index) => (
             <div key={index} className={`bg-gradient-to-r ${stat.color} p-4 rounded-lg text-white`}>
@@ -169,7 +143,6 @@ const StudyTools: React.FC = () => {
           {activeTab === 'dictionary' && <Dictionary />}
           {activeTab === 'analyzer' && <SentenceAnalyzer />}
         </div>
-      </div>
     </div>
   );
 };

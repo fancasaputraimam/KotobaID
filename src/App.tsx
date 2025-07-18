@@ -5,10 +5,10 @@ import { ProgressProvider } from './contexts/ProgressContext';
 import { FlashcardProvider } from './contexts/FlashcardContext';
 import { WritingProvider } from './contexts/WritingContext';
 import { AudioProvider } from './contexts/AudioContext';
-import LandingPage from './components/LandingPage';
+import UpdatedLandingPage from './components/layout/UpdatedLandingPage';
 import AuthPage from './components/AuthPage';
 import AdminDashboard from './components/admin/AdminDashboard';
-import LearningDashboard from './components/learning/LearningDashboard';
+import ModernDashboard from './components/layout/ModernDashboard';
 import LoadingSpinner from './components/common/LoadingSpinner';
 
 const AppContent: React.FC = () => {
@@ -25,7 +25,7 @@ const AppContent: React.FC = () => {
 
   // Show landing page if user is not logged in and landing is not dismissed
   if (!currentUser && showLanding) {
-    return <LandingPage onGetStarted={() => setShowLanding(false)} />;
+    return <UpdatedLandingPage onGetStarted={() => setShowLanding(false)} />;
   }
 
   if (!currentUser) {
@@ -43,7 +43,7 @@ const AppContent: React.FC = () => {
       <FlashcardProvider>
         <WritingProvider>
           <AudioProvider>
-            <LearningDashboard />
+            <ModernDashboard />
           </AudioProvider>
         </WritingProvider>
       </FlashcardProvider>
