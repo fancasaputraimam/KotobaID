@@ -22,19 +22,19 @@ const APISettings: React.FC = () => {
       enabled: true
     },
     speechToText: {
-      provider: 'azure-stt',
-      endpoint: 'https://your-region.api.cognitive.microsoft.com/speechtotext/v3.0/transcriptions',
+      provider: 'azure-openai-stt',
+      endpoint: 'https://your-resource.openai.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2024-06-01',
       apiKey: '',
-      model: 'en-US',
-      region: 'eastus',
+      model: 'gpt-4o-transcribe',
+      language: 'ja',
       enabled: false
     },
     textToSpeech: {
-      provider: 'azure-tts',
-      endpoint: 'https://your-region.tts.speech.microsoft.com/cognitiveservices/v1',
+      provider: 'azure-openai-tts',
+      endpoint: 'https://your-resource.openai.azure.com/openai/deployments/gpt-4o-mini-tts/audio/speech?api-version=2024-06-01',
       apiKey: '',
-      voice: 'ja-JP-NanamiNeural',
-      region: 'eastus',
+      model: 'gpt-4o-mini-tts',
+      voice: 'nova',
       enabled: false
     }
   });
@@ -185,15 +185,26 @@ const APISettings: React.FC = () => {
     try {
       const endpoint = settings.speechToText.endpoint;
       const apiKey = settings.speechToText.apiKey;
+      const model = settings.speechToText.model;
       
-      // Test with a simple token endpoint
-      const tokenEndpoint = endpoint.replace('/speechtotext/v3.0/transcriptions', '/sts/v1.0/issuetoken');
+      // Create a simple test audio blob (silence)
+      const audioContext = new AudioContext();
+      const buffer = audioContext.createBuffer(1, 44100, 44100); // 1 second of silence
+      const arrayBuffer = buffer.getChannelData(0);
+      const blob = new Blob([arrayBuffer], { type: 'audio/wav' });
       
-      const response = await fetch(tokenEndpoint, {
+      const formData = new FormData();
+      formData.append('file', blob, 'test.wav');
+      formData.append('model', model);
+      formData.append('language', settings.speechToText.language || 'ja');
+      formData.append('response_format', 'json');
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
-          'Ocp-Apim-Subscription-Key': apiKey,
+          'api-key': apiKey,
         },
+        body: formData
       });
       
       if (response.ok) {
@@ -214,22 +225,22 @@ const APISettings: React.FC = () => {
     try {
       const endpoint = settings.textToSpeech.endpoint;
       const apiKey = settings.textToSpeech.apiKey;
-      
-      // Test with a simple SSML request
-      const ssml = `<speak version='1.0' xml:lang='ja-JP'>
-        <voice xml:lang='ja-JP' xml:gender='Female' name='${settings.textToSpeech.voice}'>
-          テスト
-        </voice>
-      </speak>`;
+      const model = settings.textToSpeech.model;
+      const voice = settings.textToSpeech.voice;
       
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
-          'Ocp-Apim-Subscription-Key': apiKey,
-          'Content-Type': 'application/ssml+xml',
-          'X-Microsoft-OutputFormat': 'riff-24khz-16bit-mono-pcm',
+          'api-key': apiKey,
+          'Content-Type': 'application/json',
         },
-        body: ssml,
+        body: JSON.stringify({
+          model: model,
+          input: 'テスト',
+          voice: voice,
+          response_format: 'mp3',
+          speed: 1.0
+        }),
       });
       
       if (response.ok) {
@@ -770,6 +781,7 @@ const APISettings: React.FC = () => {
                 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
+                <option value="azure-openai-stt">Azure OpenAI STT</option>
                 <option value="azure-stt">Azure Speech Services</option>
                 <option value="google-stt">Google Speech-to-Text</option>
                 <option value="aws-transcribe">Amazon Transcribe</option>
@@ -789,7 +801,7 @@ const APISettings: React.FC = () => {
                     speechToText: { ...prev.speechToText, endpoint: e.target.value }
                   }))}
                   className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="https://your-region.api.cognitive.microsoft.com/..."
+                  placeholder="https://your-resource.openai.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2024-06-01"
                 />
                 <button
                   onClick={() => copyToClipboard(settings.speechToText.endpoint)}
@@ -834,38 +846,35 @@ const APISettings: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Model/Language STT
+                Model STT
               </label>
-              <select
+              <input
+                type="text"
                 value={settings.speechToText.model}
                 onChange={(e) => setSettings(prev => ({
                   ...prev,
                   speechToText: { ...prev.speechToText, model: e.target.value }
                 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="ja-JP">Japanese (Japan)</option>
-                <option value="en-US">English (US)</option>
-                <option value="id-ID">Indonesian</option>
-              </select>
+                placeholder="gpt-4o-transcribe"
+              />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Region STT
+                Language STT
               </label>
               <select
-                value={settings.speechToText.region}
+                value={settings.speechToText.language}
                 onChange={(e) => setSettings(prev => ({
                   ...prev,
-                  speechToText: { ...prev.speechToText, region: e.target.value }
+                  speechToText: { ...prev.speechToText, language: e.target.value }
                 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="eastus">East US</option>
-                <option value="westus2">West US 2</option>
-                <option value="eastasia">East Asia</option>
-                <option value="southeastasia">Southeast Asia</option>
+                <option value="ja">Japanese</option>
+                <option value="en">English</option>
+                <option value="id">Indonesian</option>
               </select>
             </div>
 
@@ -900,6 +909,18 @@ const APISettings: React.FC = () => {
               />
               <span className="ml-2 text-sm text-gray-700">Aktifkan Speech-to-Text</span>
             </label>
+          </div>
+
+          {/* STT Configuration Tips */}
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <h4 className="font-medium text-red-800 mb-2">Tips Konfigurasi Azure OpenAI STT:</h4>
+            <div className="text-sm text-red-700 space-y-1">
+              <p>• Model: gunakan <code>gpt-4o-transcribe</code> untuk Speech-to-Text</p>
+              <p>• Endpoint format: <code>https://your-resource.openai.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2024-06-01</code></p>
+              <p>• Language: ja (Japanese), en (English), id (Indonesian)</p>
+              <p>• API Key dari Azure OpenAI resource yang sama</p>
+              <p>• File audio harus dalam format yang didukung (wav, mp3, mp4, etc.)</p>
+            </div>
           </div>
         </div>
 
@@ -941,6 +962,7 @@ const APISettings: React.FC = () => {
                 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
+                <option value="azure-openai-tts">Azure OpenAI TTS</option>
                 <option value="azure-tts">Azure Speech Services</option>
                 <option value="google-tts">Google Text-to-Speech</option>
                 <option value="aws-polly">Amazon Polly</option>
@@ -960,7 +982,7 @@ const APISettings: React.FC = () => {
                     textToSpeech: { ...prev.textToSpeech, endpoint: e.target.value }
                   }))}
                   className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="https://your-region.tts.speech.microsoft.com/..."
+                  placeholder="https://your-resource.openai.azure.com/openai/deployments/gpt-4o-mini-tts/audio/speech?api-version=2024-06-01"
                 />
                 <button
                   onClick={() => copyToClipboard(settings.textToSpeech.endpoint)}
@@ -1005,6 +1027,22 @@ const APISettings: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
+                Model TTS
+              </label>
+              <input
+                type="text"
+                value={settings.textToSpeech.model}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  textToSpeech: { ...prev.textToSpeech, model: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="gpt-4o-mini-tts"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Voice TTS
               </label>
               <select
@@ -1015,29 +1053,12 @@ const APISettings: React.FC = () => {
                 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="ja-JP-NanamiNeural">Nanami (Japanese Female)</option>
-                <option value="ja-JP-KeitaNeural">Keita (Japanese Male)</option>
-                <option value="ja-JP-AoiNeural">Aoi (Japanese Female)</option>
-                <option value="ja-JP-DaichiNeural">Daichi (Japanese Male)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Region TTS
-              </label>
-              <select
-                value={settings.textToSpeech.region}
-                onChange={(e) => setSettings(prev => ({
-                  ...prev,
-                  textToSpeech: { ...prev.textToSpeech, region: e.target.value }
-                }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="eastus">East US</option>
-                <option value="westus2">West US 2</option>
-                <option value="eastasia">East Asia</option>
-                <option value="southeastasia">Southeast Asia</option>
+                <option value="nova">Nova</option>
+                <option value="alloy">Alloy</option>
+                <option value="echo">Echo</option>
+                <option value="fable">Fable</option>
+                <option value="onyx">Onyx</option>
+                <option value="shimmer">Shimmer</option>
               </select>
             </div>
 
@@ -1076,12 +1097,13 @@ const APISettings: React.FC = () => {
 
           {/* TTS Configuration Tips */}
           <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <h4 className="font-medium text-green-800 mb-2">Tips Konfigurasi TTS:</h4>
+            <h4 className="font-medium text-green-800 mb-2">Tips Konfigurasi Azure OpenAI TTS:</h4>
             <div className="text-sm text-green-700 space-y-1">
-              <p>• Pilih voice yang sesuai dengan bahasa target pembelajaran</p>
-              <p>• Gunakan Neural voices untuk kualitas suara yang lebih natural</p>
-              <p>• Region harus sesuai dengan lokasi resource Azure Speech Services</p>
-              <p>• Test koneksi untuk memastikan konfigurasi benar</p>
+              <p>• Model: gunakan <code>gpt-4o-mini-tts</code> untuk Text-to-Speech</p>
+              <p>• Endpoint format: <code>https://your-resource.openai.azure.com/openai/deployments/gpt-4o-mini-tts/audio/speech?api-version=2024-06-01</code></p>
+              <p>• Voice options: nova, alloy, echo, fable, onyx, shimmer</p>
+              <p>• API Key dari Azure OpenAI resource, bukan Azure Speech Services</p>
+              <p>• Test koneksi untuk memastikan deployment dan kredensial benar</p>
             </div>
           </div>
         </div>

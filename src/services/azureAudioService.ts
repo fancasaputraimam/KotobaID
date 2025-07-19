@@ -43,7 +43,8 @@ class AzureAudioService {
       return {
         endpoint: settings.textToSpeech.endpoint,
         apiKey: settings.textToSpeech.apiKey,
-        voice: settings.textToSpeech.voice || 'ja-JP-NanamiNeural'
+        model: settings.textToSpeech.model || 'gpt-4o-mini-tts',
+        voice: settings.textToSpeech.voice || 'nova'
       };
     }
     throw new Error('TTS not configured in dev panel. Please configure Text-to-Speech settings in API Settings.');
@@ -55,7 +56,8 @@ class AzureAudioService {
       return {
         endpoint: settings.speechToText.endpoint,
         apiKey: settings.speechToText.apiKey,
-        model: settings.speechToText.model || 'ja-JP'
+        model: settings.speechToText.model || 'gpt-4o-transcribe',
+        language: settings.speechToText.language || 'ja'
       };
     }
     throw new Error('STT not configured in dev panel. Please configure Speech-to-Text settings in API Settings.');
@@ -74,7 +76,7 @@ class AzureAudioService {
 
   constructor() {}
 
-  // Text-to-Speech: Convert Japanese text to audio
+  // Text-to-Speech: Convert Japanese text to audio using Azure OpenAI
   async textToSpeech(request: TTSRequest): Promise<AudioResponse> {
     try {
       const config = this.getTTSConfig();
@@ -85,17 +87,16 @@ class AzureAudioService {
       const response = await fetch(config.endpoint, {
         method: 'POST',
         headers: {
-          'Ocp-Apim-Subscription-Key': config.apiKey,
-          'Content-Type': 'application/ssml+xml',
-          'X-Microsoft-OutputFormat': 'riff-24khz-16bit-mono-pcm',
+          'api-key': config.apiKey,
+          'Content-Type': 'application/json'
         },
-        body: `<speak version='1.0' xml:lang='ja-JP'>
-          <voice xml:lang='ja-JP' xml:gender='Female' name='${voice}'>
-            <prosody rate='${speed}'>
-              ${request.text}
-            </prosody>
-          </voice>
-        </speak>`
+        body: JSON.stringify({
+          model: config.model,
+          input: request.text,
+          voice: voice,
+          response_format: format,
+          speed: speed
+        })
       });
 
       if (!response.ok) {
@@ -115,18 +116,20 @@ class AzureAudioService {
     }
   }
 
-  // Speech-to-Text: Convert audio to Japanese text
+  // Speech-to-Text: Convert audio to Japanese text using Azure OpenAI
   async speechToText(request: STTRequest): Promise<AudioResponse> {
     try {
       const config = this.getSTTConfig();
       const formData = new FormData();
-      formData.append('audio', request.audioBlob, 'audio.wav');
-      formData.append('language', request.language || config.model);
+      formData.append('file', request.audioBlob, 'audio.wav');
+      formData.append('model', config.model);
+      formData.append('language', request.language || config.language);
+      formData.append('response_format', 'json');
 
       const response = await fetch(config.endpoint, {
         method: 'POST',
         headers: {
-          'Ocp-Apim-Subscription-Key': config.apiKey
+          'api-key': config.apiKey
         },
         body: formData
       });
