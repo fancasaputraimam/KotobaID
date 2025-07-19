@@ -187,14 +187,47 @@ const APISettings: React.FC = () => {
       const apiKey = settings.speechToText.apiKey;
       const model = settings.speechToText.model;
       
-      // Create a simple test audio blob (silence)
-      const audioContext = new AudioContext();
-      const buffer = audioContext.createBuffer(1, 44100, 44100); // 1 second of silence
-      const arrayBuffer = buffer.getChannelData(0);
-      const blob = new Blob([arrayBuffer], { type: 'audio/wav' });
+      // Create a minimal valid WAV file with proper headers
+      const createTestWavBlob = () => {
+        const sampleRate = 16000;
+        const duration = 0.1; // 100ms
+        const numSamples = Math.floor(sampleRate * duration);
+        
+        // WAV file header
+        const buffer = new ArrayBuffer(44 + numSamples * 2);
+        const view = new DataView(buffer);
+        
+        // RIFF header
+        view.setUint32(0, 0x46464952, false); // "RIFF"
+        view.setUint32(4, 36 + numSamples * 2, true); // file length - 8
+        view.setUint32(8, 0x45564157, false); // "WAVE"
+        
+        // fmt chunk
+        view.setUint32(12, 0x20746d66, false); // "fmt "
+        view.setUint32(16, 16, true); // chunk length
+        view.setUint16(20, 1, true); // PCM format
+        view.setUint16(22, 1, true); // mono
+        view.setUint32(24, sampleRate, true); // sample rate
+        view.setUint32(28, sampleRate * 2, true); // byte rate
+        view.setUint16(32, 2, true); // block align
+        view.setUint16(34, 16, true); // bits per sample
+        
+        // data chunk
+        view.setUint32(36, 0x61746164, false); // "data"
+        view.setUint32(40, numSamples * 2, true); // data length
+        
+        // Silent audio data
+        for (let i = 0; i < numSamples; i++) {
+          view.setInt16(44 + i * 2, 0, true);
+        }
+        
+        return new Blob([buffer], { type: 'audio/wav' });
+      };
+      
+      const audioBlob = createTestWavBlob();
       
       const formData = new FormData();
-      formData.append('file', blob, 'test.wav');
+      formData.append('file', audioBlob, 'test.wav');
       formData.append('model', model);
       formData.append('language', settings.speechToText.language || 'ja');
       formData.append('response_format', 'json');
@@ -211,10 +244,13 @@ const APISettings: React.FC = () => {
         setTestResults(prev => ({ ...prev, speechToText: 'success' }));
         alert('✅ Koneksi Speech-to-Text berhasil!');
       } else {
+        const errorText = await response.text();
+        console.error('STT Test Error:', response.status, errorText);
         setTestResults(prev => ({ ...prev, speechToText: 'error' }));
-        alert(`❌ Koneksi Speech-to-Text gagal!\nStatus: ${response.status}\n${await response.text()}`);
+        alert(`❌ Koneksi Speech-to-Text gagal!\nStatus: ${response.status}\nError: ${errorText}`);
       }
     } catch (error) {
+      console.error('STT Test Exception:', error);
       setTestResults(prev => ({ ...prev, speechToText: 'error' }));
       alert(`❌ Koneksi Speech-to-Text gagal!\nError: ${(error as Error).message}`);
     }
