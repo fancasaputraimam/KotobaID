@@ -261,7 +261,7 @@ const APISettings: React.FC = () => {
       const response = await fetch(testEndpoint, {
         method: 'GET',
         headers: {
-          'api-key': apiKey,
+          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json'
         }
       });
@@ -274,7 +274,7 @@ const APISettings: React.FC = () => {
         const optionsResponse = await fetch(endpoint, {
           method: 'OPTIONS',
           headers: {
-            'api-key': apiKey,
+            'Authorization': `Bearer ${apiKey}`,
           }
         });
         
@@ -1006,8 +1006,9 @@ const APISettings: React.FC = () => {
               <p>• Model: gunakan <code>gpt-4o-transcribe</code> untuk Speech-to-Text</p>
               <p>• Endpoint format: <code>https://jabal-md08zjyh-eastus2.cognitiveservices.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2025-03-01-preview</code></p>
               <p>• Language: ja (Japanese), en (English), id (Indonesian)</p>
-              <p>• API Key dari Azure OpenAI resource yang sama</p>
+              <p>• API Key dari Azure OpenAI resource yang sama (gunakan sebagai Bearer token)</p>
               <p>• File audio harus dalam format yang didukung (wav, mp3, mp4, etc.)</p>
+              <p>• Format header: <code>Authorization: Bearer YOUR_API_KEY</code></p>
             </div>
           </div>
         </div>

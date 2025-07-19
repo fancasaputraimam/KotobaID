@@ -129,7 +129,7 @@ class AzureAudioService {
       const response = await fetch(config.endpoint, {
         method: 'POST',
         headers: {
-          'api-key': config.apiKey
+          'Authorization': `Bearer ${config.apiKey}`
         },
         body: formData
       });
