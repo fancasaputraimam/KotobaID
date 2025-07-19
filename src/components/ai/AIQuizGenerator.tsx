@@ -86,29 +86,37 @@ const AIQuizGenerator: React.FC = () => {
       const topicText = selectedTopic === 'custom' ? customTopic : 
         topics.find(t => t.value === selectedTopic)?.label || 'kehidupan sehari-hari';
 
-      const prompt = `Create 10 unique Japanese JLPT ${selectedLevel} quiz questions about ${topicText}. 
+      const prompt = `INSTRUKSI: Buat TEPAT 10 soal quiz bahasa Jepang level JLPT ${selectedLevel} tentang ${topicText}.
 
-Requirements:
-- EXACTLY 10 questions
-- All questions must be original and unique
-- Appropriate difficulty for JLPT ${selectedLevel}
-- Topic: ${topicText}
-- Mix categories: vocabulary, grammar, culture, practical, comprehension
-- All questions in Indonesian language (except Japanese examples)
-- 4 options per question
+WAJIB PAKAI FORMAT JSON INI SAJA:
+{
+  "questions": [
+    {
+      "category": "vocabulary",
+      "question": "Apa arti kata 日本語 dalam bahasa Indonesia?",
+      "options": ["Bahasa Jepang", "Bahasa Korea", "Bahasa China", "Bahasa Thailand"],
+      "correctAnswer": "Bahasa Jepang",
+      "explanation": "日本語 (nihongo) berarti bahasa Jepang"
+    }
+  ]
+}
 
-Return ONLY this JSON structure:
-{"questions":[{"category":"vocabulary","question":"[your question]","options":["option1","option2","option3","option4"],"correctAnswer":"[correct option]","explanation":"[explanation]"},...]}
+RULES:
+- TEPAT 10 soal (tidak boleh kurang atau lebih)
+- Kategori: vocabulary, grammar, culture, practical, comprehension
+- Soal dan pilihan dalam bahasa Indonesia
+- Setiap soal punya 4 pilihan jawaban
+- correctAnswer harus sama persis dengan salah satu option
 
-Generate 10 completely original questions now:`;
+JAWAB HANYA JSON - TIDAK ADA TEXT LAIN!`;
 
       console.log('📝 Using Azure OpenAI Service...');
 
-      // Use the azureOpenAI service
+      // Use the azureOpenAI service with conversation type for better JSON handling
       const response = await azureOpenAI.generateExplanation({
         prompt: prompt,
         type: 'conversation',
-        context: `Quiz generation for JLPT ${selectedLevel} about ${topicText}`
+        context: `JSON quiz generation for JLPT ${selectedLevel} about ${topicText}. Respond ONLY with valid JSON format.`
       });
 
       const content = response.text;
@@ -118,38 +126,63 @@ Generate 10 completely original questions now:`;
       }
 
       console.log('🔍 Parsing AI response...');
-      console.log('🔍 Raw AI response:', content);
-      console.log('📏 Response length:', content.length);
+      console.log('🔍 Raw AI response length:', content.length);
+      console.log('🔍 First 300 chars:', content.substring(0, 300));
       
       let aiQuiz;
       try {
-        // Simple and direct approach
         let jsonContent = content.trim();
         
-        // Remove any text before first {
-        const jsonStart = jsonContent.indexOf('{');
-        if (jsonStart > 0) {
-          jsonContent = jsonContent.substring(jsonStart);
+        // Remove common prefixes/suffixes
+        jsonContent = jsonContent
+          .replace(/^```json\s*/i, '')
+          .replace(/\s*```\s*$/i, '')
+          .replace(/^```\s*/i, '')
+          .replace(/^json\s*/i, '')
+          .replace(/^Here.*?:/i, '')
+          .replace(/^Response.*?:/i, '');
+        
+        // Find JSON boundaries more aggressively
+        let startIndex = jsonContent.indexOf('{');
+        let endIndex = jsonContent.lastIndexOf('}');
+        
+        if (startIndex === -1 || endIndex === -1 || startIndex >= endIndex) {
+          throw new Error('No valid JSON structure found');
         }
         
-        // Remove any text after last }
-        const jsonEnd = jsonContent.lastIndexOf('}');
-        if (jsonEnd > 0) {
-          jsonContent = jsonContent.substring(0, jsonEnd + 1);
-        }
+        jsonContent = jsonContent.substring(startIndex, endIndex + 1);
         
-        console.log('🔧 Cleaned JSON:', jsonContent.substring(0, 200) + '...');
+        console.log('🔧 Cleaned JSON first 200 chars:', jsonContent.substring(0, 200));
         
-        // Try direct parsing
+        // Try parsing with better error handling
         aiQuiz = JSON.parse(jsonContent);
         console.log('✅ JSON parsed successfully');
         
+        // Additional validation
+        if (!aiQuiz || typeof aiQuiz !== 'object') {
+          throw new Error('Parsed result is not a valid object');
+        }
+        
       } catch (parseError) {
         console.error('❌ JSON parsing failed:', parseError);
-        console.error('🔍 Content that failed to parse:', content);
+        console.error('🔍 Raw content:', content);
         
-        // No fallback - pure AI only
-        throw new Error(`Azure OpenAI response format tidak valid. Raw response: ${content.substring(0, 200)}...`);
+        // Try alternative parsing methods
+        try {
+          // Try finding questions array directly
+          const questionsMatch = content.match(/"questions"\s*:\s*\[[\s\S]*?\]/);
+          if (questionsMatch) {
+            const questionsJson = `{${questionsMatch[0]}}`;
+            console.log('🔄 Trying alternative parsing with questions array');
+            aiQuiz = JSON.parse(questionsJson);
+            console.log('✅ Alternative parsing successful');
+          } else {
+            throw new Error('No questions array found');
+          }
+        } catch (altError) {
+          console.error('❌ Alternative parsing also failed:', altError);
+          throw new Error(`Format response AI tidak valid. Error: ${parseError instanceof Error ? parseError.message : 'Unknown error'}. Raw: ${content.substring(0, 100)}...`);
+        }
       }
 
       if (!aiQuiz || typeof aiQuiz !== 'object') {
@@ -169,12 +202,12 @@ Generate 10 completely original questions now:`;
 
       console.log(`✅ Found ${aiQuiz.questions.length} raw questions`);
 
-      // Process and validate questions
+      // Process and validate questions with more lenient requirements
       const processedQuestions = validateQuestions(aiQuiz.questions, uniqueId);
       
-      if (processedQuestions.length < 8) {
-        console.warn(`⚠️ Only ${processedQuestions.length} valid questions, need at least 8`);
-        throw new Error(`Azure OpenAI hanya berhasil generate ${processedQuestions.length} soal valid dari 10 yang diminta. Minimal dibutuhkan 8 soal. Tidak ada mock data - silakan coba lagi dengan topik atau level yang berbeda.`);
+      if (processedQuestions.length < 5) {
+        console.warn(`⚠️ Only ${processedQuestions.length} valid questions, need at least 5`);
+        throw new Error(`Azure OpenAI hanya berhasil generate ${processedQuestions.length} soal valid. Minimal dibutuhkan 5 soal untuk melanjutkan quiz. Silakan coba lagi.`);
       }
       
       if (processedQuestions.length < 10) {
@@ -272,15 +305,36 @@ Generate 10 completely original questions now:`;
       // Take only first 4 options
       const finalOptions = cleanOptions.slice(0, 4);
       
-      // Check if correct answer exists in options (case insensitive)
-      const correctAnswerLower = q.correctAnswer.trim().toLowerCase();
-      const optionsLower = finalOptions.map(opt => opt.toLowerCase());
+      // Check if correct answer exists in options (case insensitive and flexible matching)
+      const correctAnswerTrimmed = q.correctAnswer.trim();
+      let finalCorrectAnswer = correctAnswerTrimmed;
       
-      let finalCorrectAnswer = q.correctAnswer.trim();
-      if (!optionsLower.includes(correctAnswerLower)) {
-        // If correct answer not in options, use first option
-        finalCorrectAnswer = finalOptions[0];
-        console.log(`⚠️ Question ${i + 1}: Correct answer not found, using first option`);
+      // Try exact match first
+      if (finalOptions.includes(correctAnswerTrimmed)) {
+        finalCorrectAnswer = correctAnswerTrimmed;
+      } else {
+        // Try case insensitive match
+        const correctAnswerLower = correctAnswerTrimmed.toLowerCase();
+        const matchingOption = finalOptions.find(opt => opt.toLowerCase() === correctAnswerLower);
+        
+        if (matchingOption) {
+          finalCorrectAnswer = matchingOption;
+        } else {
+          // Try partial match (contains)
+          const partialMatch = finalOptions.find(opt => 
+            opt.toLowerCase().includes(correctAnswerLower) || 
+            correctAnswerLower.includes(opt.toLowerCase())
+          );
+          
+          if (partialMatch) {
+            finalCorrectAnswer = partialMatch;
+            console.log(`⚠️ Question ${i + 1}: Using partial match for correct answer`);
+          } else {
+            // Last resort: use first option
+            finalCorrectAnswer = finalOptions[0];
+            console.log(`⚠️ Question ${i + 1}: Correct answer not found anywhere, using first option`);
+          }
+        }
       }
       
       // Default category if not provided
