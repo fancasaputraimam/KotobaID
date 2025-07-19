@@ -18,7 +18,7 @@ import {
   Zap
 } from 'lucide-react';
 import { azureAudioService } from '../../services/azureAudioService';
-import ReadingQuiz from './ReadingQuiz';
+import ReadingQuizNew from './ReadingQuizNew';
 
 interface ReadingText {
   id: string;
@@ -640,7 +640,7 @@ Pastikan grammar dan vocabulary akurat sesuai level ${selectedLevel}.`;
 
       {/* Reading Quiz */}
       {showQuiz && currentText && readingStats && (
-        <ReadingQuiz
+        <ReadingQuizNew
           text={currentText}
           readingStats={readingStats}
           onComplete={handleQuizComplete}
