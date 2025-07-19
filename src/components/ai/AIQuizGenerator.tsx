@@ -91,11 +91,21 @@ const AIQuizGenerator: React.FC = () => {
       const topicText = selectedTopic === 'custom' ? customTopic : 
         topics.find(t => t.value === selectedTopic)?.label || 'kehidupan sehari-hari';
 
-      const prompt = `Generate 10 Japanese quiz questions for JLPT ${selectedLevel} about ${topicText}. Return only this JSON format:
+      const prompt = `Create 10 unique Japanese JLPT ${selectedLevel} quiz questions about ${topicText}. 
 
-{"questions":[{"category":"vocabulary","question":"Kata 'konnichiwa' berarti","options":["Selamat pagi","Selamat siang","Selamat malam","Sampai jumpa"],"correctAnswer":"Selamat siang","explanation":"Konnichiwa digunakan untuk menyapa di siang hari"},{"category":"grammar","question":"Pola untuk menyatakan kemampuan adalah","options":["dekiru","dekimasu","dekinai","dekimasen"],"correctAnswer":"dekiru","explanation":"Dekiru digunakan untuk menyatakan kemampuan"},{"category":"culture","question":"Saat membungkuk dalam budaya Jepang disebut","options":["Ojigi","Arigato","Sumimasen","Hai"],"correctAnswer":"Ojigi","explanation":"Ojigi adalah tradisi membungkuk sebagai bentuk hormat"},{"category":"practical","question":"Untuk berterima kasih di restoran","options":["Arigatou gozaimasu","Sumimasen","Onegaishimasu","Gochisousama"],"correctAnswer":"Arigatou gozaimasu","explanation":"Arigatou gozaimasu adalah ucapan terima kasih formal"},{"category":"comprehension","question":"Otsukaresama digunakan untuk","options":["Mengucapkan terima kasih atas kerja keras","Menyapa pagi","Meminta maaf","Mengucapkan selamat"],"correctAnswer":"Mengucapkan terima kasih atas kerja keras","explanation":"Otsukaresama menghargai usaha seseorang"},{"category":"vocabulary","question":"Kata 'gakkou' berarti","options":["Sekolah","Rumah","Kantor","Toko"],"correctAnswer":"Sekolah","explanation":"Gakkou adalah kata untuk sekolah"},{"category":"grammar","question":"Untuk menanyakan waktu menggunakan","options":["Nanji desu ka","Dare desu ka","Doko desu ka","Nani desu ka"],"correctAnswer":"Nanji desu ka","explanation":"Nanji desu ka berarti jam berapa"},{"category":"culture","question":"Festival musim semi di Jepang","options":["Hanami","Matsuri","Tanabata","Obon"],"correctAnswer":"Hanami","explanation":"Hanami adalah festival melihat bunga sakura"},{"category":"practical","question":"Untuk memesan makanan","options":["Kore wo kudasai","Arigato","Sayonara","Ohayo"],"correctAnswer":"Kore wo kudasai","explanation":"Kore wo kudasai berarti tolong yang ini"},{"category":"comprehension","question":"Itadakimasu diucapkan","options":["Sebelum makan","Setelah makan","Saat bertemu","Saat berpisah"],"correctAnswer":"Sebelum makan","explanation":"Itadakimasu diucapkan sebelum mulai makan"}]}
+Requirements:
+- EXACTLY 10 questions
+- All questions must be original and unique
+- Appropriate difficulty for JLPT ${selectedLevel}
+- Topic: ${topicText}
+- Mix categories: vocabulary, grammar, culture, practical, comprehension
+- All questions in Indonesian language (except Japanese examples)
+- 4 options per question
 
-Generate similar 10 questions for ${selectedLevel} level about ${topicText}:`;
+Return ONLY this JSON structure:
+{"questions":[{"category":"vocabulary","question":"[your question]","options":["option1","option2","option3","option4"],"correctAnswer":"[correct option]","explanation":"[explanation]"},...]}
+
+Generate 10 completely original questions now:`;
 
       console.log('📝 Sending AI Quiz request...');
       console.log('Endpoint:', settings.azureOpenAI.backendEndpoint);
@@ -170,21 +180,7 @@ Generate similar 10 questions for ${selectedLevel} level about ${topicText}:`;
         console.error('❌ JSON parsing failed:', parseError);
         console.error('🔍 Content that failed to parse:', content);
         
-        // If parsing fails, create a simple fallback structure
-        console.log('🔄 Creating minimal fallback structure...');
-        aiQuiz = {
-          questions: [
-            {
-              category: "vocabulary",
-              question: "Test question - AI response parsing failed",
-              options: ["Option A", "Option B", "Option C", "Option D"],
-              correctAnswer: "Option A",
-              explanation: "This is a fallback question due to parsing error"
-            }
-          ]
-        };
-        
-        // But still throw error to let user know something went wrong
+        // No fallback - pure AI only
         throw new Error(`AI response format tidak valid. Raw response: ${content.substring(0, 200)}...`);
       }
 
@@ -210,7 +206,7 @@ Generate similar 10 questions for ${selectedLevel} level about ${topicText}:`;
       
       if (processedQuestions.length < 8) {
         console.warn(`⚠️ Only ${processedQuestions.length} valid questions, need at least 8`);
-        throw new Error(`Hanya berhasil membuat ${processedQuestions.length} soal valid. Minimal dibutuhkan 8 soal. Silakan coba lagi.`);
+        throw new Error(`AI hanya berhasil generate ${processedQuestions.length} soal valid dari 10 yang diminta. Minimal dibutuhkan 8 soal. Tidak ada mock data - silakan coba lagi dengan topik atau level yang berbeda.`);
       }
       
       if (processedQuestions.length < 10) {
@@ -345,65 +341,6 @@ Generate similar 10 questions for ${selectedLevel} level about ${topicText}:`;
     return validQuestions;
   };
 
-  const generateFallbackQuiz = () => {
-    console.log('🔧 Generating fallback quiz...');
-    
-    const fallbackQuestions: QuizQuestion[] = [
-      {
-        id: `fallback_vocab_${Date.now()}`,
-        type: 'multiple-choice',
-        category: 'vocabulary',
-        question: `Kata '家族' dalam bahasa Indonesia berarti:`,
-        options: ['Keluarga', 'Teman', 'Tetangga', 'Rekan kerja'],
-        correctAnswer: 'Keluarga',
-        explanation: 'Kata 家族 (kazoku) berarti keluarga dalam bahasa Indonesia.',
-        points: 20
-      },
-      {
-        id: `fallback_grammar_${Date.now()}`,
-        type: 'multiple-choice', 
-        category: 'grammar',
-        question: `Untuk menyatakan "sedang melakukan sesuatu" dalam bahasa Jepang, pola yang benar adalah:`,
-        options: ['～ています', '～ました', '～ます', '～でした'],
-        correctAnswer: '～ています',
-        explanation: 'Pola ～ています digunakan untuk menyatakan kegiatan yang sedang berlangsung.',
-        points: 20
-      },
-      {
-        id: `fallback_culture_${Date.now()}`,
-        type: 'multiple-choice',
-        category: 'culture', 
-        question: 'Dalam budaya Jepang, saat bertemu dengan orang yang lebih tua atau atasan, yang biasanya dilakukan adalah:',
-        options: ['Membungkukkan badan (ojigi)', 'Berjabat tangan', 'Melambaikan tangan', 'Menganggukkan kepala saja'],
-        correctAnswer: 'Membungkukkan badan (ojigi)',
-        explanation: 'Ojigi (membungkukkan badan) adalah cara menunjukkan rasa hormat dalam budaya Jepang.',
-        points: 20
-      },
-      {
-        id: `fallback_practical_${Date.now()}`,
-        type: 'multiple-choice',
-        category: 'practical',
-        question: 'Jika ingin memesan makanan di restoran Jepang, ungkapan yang tepat adalah:',
-        options: ['注文をお願いします', 'ありがとうございます', 'すみません', 'いらっしゃいませ'],
-        correctAnswer: '注文をお願いします',
-        explanation: '注文をお願いします (chuumon wo onegaishimasu) berarti "tolong pesanan" yang tepat untuk memesan makanan.',
-        points: 20
-      },
-      {
-        id: `fallback_comprehension_${Date.now()}`,
-        type: 'multiple-choice',
-        category: 'comprehension',
-        question: 'Ungkapan "お疲れ様" biasanya digunakan dalam konteks:',
-        options: ['Mengucapkan terima kasih atas kerja keras', 'Menyapa di pagi hari', 'Meminta maaf', 'Mengucapkan selamat tinggal'],
-        correctAnswer: 'Mengucapkan terima kasih atas kerja keras',
-        explanation: 'お疲れ様 (otsukaresama) digunakan untuk menghargai usaha dan kerja keras seseorang.',
-        points: 20
-      }
-    ];
-    
-    setQuestions(fallbackQuestions);
-    setQuizStartTime(Date.now());
-  };
 
   const handleAnswer = (answer: string) => {
     setUserAnswers(prev => ({
@@ -547,8 +484,8 @@ Generate similar 10 questions for ${selectedLevel} level about ${topicText}:`;
               <Brain className="h-8 w-8 text-purple-600" />
               <Sparkles className="h-6 w-6 text-yellow-500" />
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">AI Quiz Generator</h2>
-            <p className="text-gray-600">Generator soal JLPT otomatis dengan AI anti-duplikasi</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">Pure AI Quiz Generator</h2>
+            <p className="text-gray-600">100% AI-generated JLPT quiz - Tanpa mock data, hanya AI murni</p>
           </div>
 
           {/* Level Selection */}
@@ -659,12 +596,13 @@ Generate similar 10 questions for ${selectedLevel} level about ${topicText}:`;
             </h4>
             <ul className="text-sm text-blue-700 space-y-1">
               <li>• <strong>10 soal unik</strong> dibuat otomatis oleh AI untuk setiap quiz</li>
+              <li>• <strong>100% AI-generated</strong> - tidak ada mock data atau template</li>
               <li>• 5 kategori soal berbeda: Vocabulary, Grammar, Culture, Practical, Comprehension</li>
               <li>• Sistem anti-duplikasi advanced dengan validasi ketat</li>
               <li>• Soal disesuaikan dengan level JLPT yang dipilih</li>
               <li>• Topik dapat disesuaikan atau menggunakan topik kustom</li>
               <li>• Analisis performa dan tracking progress</li>
-              <li>• <strong>Wajib menggunakan AI</strong> - tidak ada opsi quiz standar</li>
+              <li>• <strong>Pure AI only</strong> - Azure OpenAI wajib dikonfigurasi</li>
             </ul>
           </div>
 
@@ -700,7 +638,7 @@ Generate similar 10 questions for ${selectedLevel} level about ${topicText}:`;
               if (!settings.azureOpenAI?.enabled || !settings.azureOpenAI?.backendEndpoint || !settings.azureOpenAI?.apiKey) {
                 return (
                   <div className="mt-3 p-2 bg-red-100 border border-red-300 rounded text-red-800 text-sm">
-                    ❌ <strong>Azure OpenAI wajib dikonfigurasi!</strong> Quiz generator ini membutuhkan AI untuk membuat 10 soal unik. Silakan konfigurasi di Settings terlebih dahulu.
+                    ❌ <strong>Azure OpenAI wajib dikonfigurasi!</strong> Quiz generator ini 100% bergantung pada AI - tidak ada mock data atau fallback. Silakan konfigurasi di Settings terlebih dahulu.
                   </div>
                 );
               }
