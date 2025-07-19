@@ -71,32 +71,51 @@ const ReadingQuiz: React.FC<ReadingQuizProps> = ({
       // Create unique identifier for this text to ensure variety
       const textHash = text.content.slice(0, 20) + Date.now();
       
-      const prompt = `Sebagai guru bahasa Jepang ahli, buat 5 soal quiz UNIK dan BERVARIASI untuk teks berikut:
+      const prompt = `Sebagai guru bahasa Jepang ahli, buat 7-8 soal quiz SANGAT BERBEDA dan UNIK untuk teks berikut (lebih banyak untuk antisipasi duplikasi):
 
 TEKS ASLI: "${text.content}"
 TERJEMAHAN: "${text.translation}"
 LEVEL: ${text.level}
 VOCABULARY: ${text.vocabulary.map(v => `${v.word}(${v.meaning})`).join(', ')}
 
-REQUIREMENTS KETAT:
-1. Buat 5 soal yang BENAR-BENAR BERBEDA satu sama lain
-2. JANGAN gunakan pola soal yang sama atau mirip
-3. Setiap soal harus SPESIFIK berdasarkan konten teks ini
-4. Soal harus mengukur pemahaman MENDALAM, bukan hafalan
+REQUIREMENTS ULTRA KETAT - HARUS DITAATI:
+1. Buat 7-8 soal yang SANGAT BERBEDA satu sama lain
+2. SETIAP soal harus menggunakan PENDEKATAN YANG BERBEDA TOTAL
+3. DILARANG KERAS menggunakan kata/frasa yang sama dalam soal
+4. Setiap soal harus mengukur ASPEK BERBEDA dari pemahaman
+5. JANGAN ADA soal yang mirip struktur atau pattern-nya
 
-DISTRIBUSI SOAL:
-- 1 soal tentang MAIN IDEA / tema utama teks
-- 1 soal tentang DETAIL SPESIFIK yang disebutkan dalam teks  
-- 1 soal VOCABULARY dari kata yang ADA di teks
-- 1 soal tentang INFERENSI / kesimpulan dari teks
-- 1 soal tentang APLIKASI / penerapan informasi dari teks
+DISTRIBUSI SOAL YANG HARUS BENAR-BENAR BERBEDA:
+- 1 soal tentang MOTIVASI/ALASAN dari tindakan dalam teks
+- 1 soal tentang URUTAN WAKTU/KRONOLOGI peristiwa
+- 1 soal VOCABULARY dengan KONTEKS SPESIFIK dari teks
+- 1 soal tentang HUBUNGAN SEBAB-AKIBAT dalam teks
+- 1 soal tentang PERBANDINGAN/KONTRAS yang disebutkan
+- 1 soal tentang IMPLIKASI/DAMPAK dari informasi dalam teks
+- 1 soal tentang DETAIL KUANTITATIF (angka, jumlah, frekuensi)
+- 1 soal tentang KARAKTERISASI/DESKRIPSI dalam teks
 
-CONTOH VARIASI SOAL YANG BAGUS:
-- "Berdasarkan teks, apa yang menjadi fokus utama pembahasan?"
-- "Menurut teks, kapan/dimana/siapa yang melakukan [detail spesifik]?"
-- "Kata '${text.vocabulary[0]?.word || 'example'}' dalam teks memiliki arti..."
-- "Dari teks dapat disimpulkan bahwa..."
-- "Jika situasi dalam teks terjadi di Indonesia, maka..."
+TEMPLATE YANG DILARANG (JANGAN PAKAI):
+- "Apa [sesuatu] dalam teks?"
+- "Siapa yang [melakukan sesuatu]?"
+- "Dimana [kejadian]?"
+- "Kapan [peristiwa]?"
+
+CONTOH SOAL BAGUS YANG HARUS DITIRU:
+- "Mengapa [karakter X] memutuskan untuk [tindakan Y] berdasarkan informasi dalam teks?"
+- "Dalam urutan kejadian yang disebutkan, apa yang terjadi SETELAH [peristiwa A]?"
+- "Berdasarkan konteks kalimat '[quote spesifik]', kata X bermakna?"
+- "Hubungan sebab-akibat apa yang dapat diidentifikasi antara [A] dan [B]?"
+- "Perbandingan apa yang dibuat teks antara [konsep X] dan [konsep Y]?"
+- "Apa dampak jangka panjang dari [situasi] yang digambarkan dalam teks?"
+- "Berapa kali/seberapa sering [aktivitas] dilakukan menurut teks?"
+- "Karakteristik apa yang PALING menonjol dari [subjek] berdasarkan deskripsi?"
+
+CONTOH YANG HARUS DIHINDARI:
+- "Apa topik teks ini?" ← TERLALU UMUM
+- "Siapa tokoh utama?" ← TERLALU SEDERHANA  
+- "Dimana cerita terjadi?" ← TEMPLATE
+- "Kapan peristiwa berlangsung?" ← GENERIK
 
 FORMAT JSON TEPAT:
 {
@@ -113,24 +132,21 @@ FORMAT JSON TEPAT:
   ]
 }
 
-PENTING: 
-- Setiap soal HARUS merujuk konten spesifik dari teks
-- HINDARI soal generik seperti "Apa topik teks ini?"
-- Buat soal yang hanya bisa dijawab jika benar-benar membaca teks
-- Pastikan 5 soal benar-benar berbeda fokus dan tidak overlap
-- Response HARUS dalam format JSON yang valid
-- Setiap soal HARUS memiliki minimal 4 opsi jawaban
-- JANGAN buat soal yang mirip atau pola yang sama
+ATURAN FINAL - WAJIB DITAATI:
+- SETIAP soal harus dimulai dengan kata yang BERBEDA: "Mengapa", "Bagaimana", "Berdasarkan", "Dalam konteks", "Menurut", "Setelah", "Sebelum", "Dibandingkan"
+- TIDAK BOLEH ada 2 soal yang menggunakan struktur kalimat serupa
+- Setiap soal harus quote/referensi DETAIL SPESIFIK dari teks asli
+- WAJIB gunakan 4 pilihan jawaban yang logis dan masuk akal semua
+- Response HARUS JSON valid dengan struktur yang benar
+- Buktikan bahwa pembaca BENAR-BENAR memahami isi teks, bukan menebak
 
-CONTOH SOAL YANG HARUS DIHINDARI (JANGAN BUAT INI):
-- "Apa tema utama teks?"
-- "Siapa yang disebutkan dalam teks?"
-- "Dimana cerita ini terjadi?"
+FINAL CHECK - Pastikan TIDAK ADA yang sama:
+❌ DILARANG: Soal 1 "Apa..." dan Soal 2 "Apa..."  
+❌ DILARANG: Soal dengan kata kunci yang sama
+❌ DILARANG: Pattern struktur kalimat yang mirip
+✅ WAJIB: Setiap soal fokus aspek yang BEDA TOTAL
 
-CONTOH SOAL YANG BAGUS (BUAT SEPERTI INI):
-- "Menurut teks, mengapa [karakter] melakukan [tindakan spesifik]?"
-- "Berdasarkan informasi yang diberikan, kapan peristiwa [X] terjadi?"
-- "Apa yang dapat disimpulkan tentang [aspek spesifik] dari teks?"`;
+GENERATE SEKARANG dengan aturan di atas!`;
 
       console.log('📝 Sending prompt to AI for quiz generation...');
       console.log('Text preview:', text.content.slice(0, 100) + '...');
@@ -178,39 +194,128 @@ CONTOH SOAL YANG BAGUS (BUAT SEPERTI INI):
       }
 
       if (aiQuiz.questions && Array.isArray(aiQuiz.questions)) {
-        // Validate and process questions
-        const processedQuestions = aiQuiz.questions
-          .filter((q: any, index: number, arr: any[]) => {
-            // Remove questions with empty content
-            if (!q.question || !q.correctAnswer || !q.options || q.options.length < 2) {
-              return false;
-            }
-            
-            // Remove duplicate questions (check similarity)
-            const questionLower = q.question.toLowerCase();
-            const isDuplicate = arr.slice(0, index).some((prevQ: any) => 
-              prevQ.question && 
-              prevQ.question.toLowerCase().includes(questionLower.slice(0, 20)) ||
-              questionLower.includes(prevQ.question.toLowerCase().slice(0, 20))
+        // Advanced duplicate detection and question validation
+        const processedQuestions: QuizQuestion[] = [];
+        const usedQuestionPatterns = new Set<string>();
+        const usedKeywords = new Set<string>();
+        
+        for (let i = 0; i < aiQuiz.questions.length && processedQuestions.length < 5; i++) {
+          const q = aiQuiz.questions[i];
+          
+          // Basic validation
+          if (!q.question || !q.correctAnswer || !q.options || q.options.length < 3) {
+            console.log(`❌ Question ${i + 1} rejected: Missing required fields`);
+            continue;
+          }
+          
+          // Normalize question for comparison
+          const questionNormalized = q.question
+            .toLowerCase()
+            .replace(/[?.,!]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+          
+          // Extract key words from question (remove common words)
+          const questionWords = questionNormalized
+            .split(' ')
+            .filter(word => 
+              word.length > 2 && 
+              !['apa', 'yang', 'adalah', 'dalam', 'dari', 'untuk', 'dengan', 'pada', 'ini', 'itu', 'dan', 'atau', 'teks', 'bacaan'].includes(word)
             );
-            
-            return !isDuplicate;
-          })
-          .map((q: any, index: number) => ({
-            id: `${textHash}_q${index + 1}`,
+          
+          // Check for exact duplicates
+          if (usedQuestionPatterns.has(questionNormalized)) {
+            console.log(`❌ Question ${i + 1} rejected: Exact duplicate - "${q.question.slice(0, 50)}..."`);
+            continue;
+          }
+          
+          // Check for similar content (>70% keyword overlap)
+          let keywordOverlap = 0;
+          questionWords.forEach(word => {
+            if (usedKeywords.has(word)) {
+              keywordOverlap++;
+            }
+          });
+          
+          const overlapPercentage = questionWords.length > 0 ? (keywordOverlap / questionWords.length) * 100 : 0;
+          if (overlapPercentage > 70 && processedQuestions.length > 0) {
+            console.log(`❌ Question ${i + 1} rejected: High similarity (${Math.round(overlapPercentage)}%) - "${q.question.slice(0, 50)}..."`);
+            continue;
+          }
+          
+          // Check for generic/template questions
+          const genericPatterns = [
+            /apa (tema|topik) utama/,
+            /siapa (yang|tokoh)/,
+            /dimana.*terjadi/,
+            /kapan.*berlangsung/,
+            /berapa.*jumlah/,
+            /mengapa.*penting/
+          ];
+          
+          const isGeneric = genericPatterns.some(pattern => pattern.test(questionNormalized));
+          if (isGeneric && processedQuestions.length > 0) {
+            console.log(`❌ Question ${i + 1} rejected: Generic pattern - "${q.question.slice(0, 50)}..."`);
+            continue;
+          }
+          
+          // Validate options uniqueness
+          const uniqueOptions = [...new Set(q.options.map((opt: string) => opt.trim().toLowerCase()))];
+          if (uniqueOptions.length < 3) {
+            console.log(`❌ Question ${i + 1} rejected: Duplicate options`);
+            continue;
+          }
+          
+          // Check if correct answer exists in options
+          const correctAnswerExists = q.options.some((opt: string) => 
+            opt.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()
+          );
+          if (!correctAnswerExists) {
+            console.log(`❌ Question ${i + 1} rejected: Correct answer not in options`);
+            continue;
+          }
+          
+          // All validations passed - add question
+          console.log(`✅ Question ${i + 1} accepted: "${q.question.slice(0, 50)}..."`);
+          
+          processedQuestions.push({
+            id: `${textHash}_q${processedQuestions.length + 1}`,
             type: q.type || 'multiple-choice',
             question: q.question.trim(),
-            options: q.options.filter((opt: string) => opt && opt.trim()),
+            options: q.options.map((opt: string) => opt.trim()).filter(Boolean),
             correctAnswer: q.correctAnswer.trim(),
             explanation: q.explanation?.trim() || 'Jawaban berdasarkan konten teks.',
             points: q.points || 20
-          }))
-          .slice(0, 5); // Ensure max 5 questions
+          });
+          
+          // Track used patterns and keywords
+          usedQuestionPatterns.add(questionNormalized);
+          questionWords.forEach(word => usedKeywords.add(word));
+        }
 
-        // Debug logging
-        console.log('AI Generated Questions:', aiQuiz.questions.length);
-        console.log('Valid Questions After Processing:', processedQuestions.length);
-        console.log('Processed Questions:', processedQuestions.map(q => ({ id: q.id, question: q.question.slice(0, 50) + '...' })));
+        // Comprehensive debug logging
+        console.log('🤖 AI Generated Questions:', aiQuiz.questions.length);
+        console.log('✅ Valid Questions After Processing:', processedQuestions.length);
+        console.log('📋 Final Questions List:');
+        processedQuestions.forEach((q, index) => {
+          console.log(`   ${index + 1}. "${q.question}"`);
+        });
+        
+        // Check for any remaining similarity in final questions
+        if (processedQuestions.length > 1) {
+          console.log('🔍 Final Similarity Check:');
+          for (let i = 0; i < processedQuestions.length; i++) {
+            for (let j = i + 1; j < processedQuestions.length; j++) {
+              const q1Words = processedQuestions[i].question.toLowerCase().split(' ');
+              const q2Words = processedQuestions[j].question.toLowerCase().split(' ');
+              const commonWords = q1Words.filter(word => q2Words.includes(word) && word.length > 3);
+              
+              if (commonWords.length > 2) {
+                console.warn(`⚠️ Potential similarity between Q${i+1} and Q${j+1}: common words [${commonWords.join(', ')}]`);
+              }
+            }
+          }
+        }
 
         // Validate we have enough good questions
         if (processedQuestions.length >= 3) {
