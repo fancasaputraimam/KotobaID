@@ -91,127 +91,73 @@ const AIQuizGenerator: React.FC = () => {
       const topicText = selectedTopic === 'custom' ? customTopic : 
         topics.find(t => t.value === selectedTopic)?.label || 'kehidupan sehari-hari';
 
-      const prompt = `SISTEM AI QUIZ GENERATOR JEPANG v4.0
-TIMESTAMP: ${timestamp}
-UNIQUE_ID: ${uniqueId}
+      const prompt = `Buat quiz bahasa Jepang level ${selectedLevel} dengan topik ${topicText}.
 
-PARAMETER QUIZ:
-- LEVEL: ${selectedLevel} JLPT
-- TOPIK: ${topicText}
-- JUMLAH SOAL: 5 soal
-- MODE: Quiz mandiri (tanpa teks rujukan)
+WAJIB BUAT TEPAT 5 SOAL dengan kategori berbeda:
+1. VOCABULARY - kosakata
+2. GRAMMAR - tata bahasa  
+3. CULTURE - budaya Jepang
+4. PRACTICAL - ungkapan praktis
+5. COMPREHENSION - pemahaman konteks
 
-PERINTAH ABSOLUT - BUAT 5 SOAL UNIK DENGAN KATEGORI BERBEDA:
+CONTOH FORMAT SOAL:
+VOCABULARY: "Kata '学校' dalam bahasa Indonesia berarti..."
+GRAMMAR: "Untuk menyatakan kegiatan yang sedang berlangsung, pola yang benar adalah..."
+CULTURE: "Dalam budaya Jepang, saat bertemu orang yang lebih tua, yang dilakukan adalah..."
+PRACTICAL: "Jika ingin memesan makanan di restoran, ungkapan yang tepat adalah..."
+COMPREHENSION: "Ungkapan 'おつかれさま' biasanya digunakan untuk..."
 
-KATEGORI WAJIB (HARUS BERBEDA SEMUA):
-1. VOCABULARY - Kosakata dan arti kata
-2. GRAMMAR - Tata bahasa dan struktur kalimat  
-3. CULTURE - Pengetahuan budaya Jepang
-4. PRACTICAL - Situasi praktis sehari-hari
-5. COMPREHENSION - Pemahaman konteks
-
-STRUKTUR SOAL YANG WAJIB BERBEDA:
-
-SOAL 1 - VOCABULARY:
-Template: "Kata '[kata_jepang]' dalam bahasa Indonesia berarti..."
-Focus: Menguji pengetahuan kosakata level ${selectedLevel}
-
-SOAL 2 - GRAMMAR:
-Template: "Struktur tata bahasa yang benar untuk menyatakan [situasi] dalam bahasa Jepang adalah..."
-Focus: Menguji grammar pattern sesuai level
-
-SOAL 3 - CULTURE:
-Template: "Dalam budaya Jepang, ketika [situasi_budaya], yang biasanya dilakukan adalah..."
-Focus: Menguji pengetahuan budaya dan etiket
-
-SOAL 4 - PRACTICAL:
-Template: "Jika Anda berada di Jepang dan ingin [tujuan_praktis], ungkapan yang tepat adalah..."
-Focus: Situasi komunikasi nyata
-
-SOAL 5 - COMPREHENSION:
-Template: "Ungkapan '[ungkapan_jepang]' biasanya digunakan dalam konteks..."
-Focus: Pemahaman nuansa dan konteks penggunaan
-
-ATURAN ANTI-DUPLIKASI KETAT:
-❌ DILARANG mengulang pola pertanyaan yang sama
-❌ DILARANG menggunakan vocabulary yang sama antar soal
-❌ DILARANG membuat opsi jawaban yang mirip
-❌ DILARANG menggunakan situasi yang sama
-✅ SETIAP soal harus test aspek berbeda dari bahasa Jepang
-✅ SETIAP opsi jawaban harus spesifik dan tidak ambigu
-✅ SETIAP soal harus relevan dengan level ${selectedLevel}
-✅ SETIAP soal harus berkaitan dengan topik ${topicText}
-
-VALIDASI KUALITAS:
-- Pastikan vocabulary sesuai level ${selectedLevel}
-- Pastikan grammar pattern sesuai JLPT ${selectedLevel}
-- Pastikan informasi budaya akurat
-- Pastikan situasi praktis realistis
-- Pastikan ada jawaban yang jelas benar
-
-OUTPUT JSON WAJIB:
+WAJIB RESPONSE FORMAT JSON:
 {
-  "timestamp": ${timestamp},
-  "uniqueId": "${uniqueId}", 
-  "level": "${selectedLevel}",
-  "topic": "${topicText}",
   "questions": [
     {
-      "id": "vocab_${uniqueId}",
       "category": "vocabulary",
-      "question": "Kata '[kata_jepang]' dalam bahasa Indonesia berarti...",
-      "options": ["A", "B", "C", "D"],
-      "correctAnswer": "jawaban benar",
-      "explanation": "penjelasan detail tentang vocabulary",
-      "difficulty": "${selectedLevel}"
+      "question": "soal vocabulary di sini",
+      "options": ["pilihan A", "pilihan B", "pilihan C", "pilihan D"],
+      "correctAnswer": "pilihan yang benar",
+      "explanation": "penjelasan jawaban"
     },
     {
-      "id": "grammar_${uniqueId}",
       "category": "grammar", 
-      "question": "Struktur tata bahasa yang benar untuk menyatakan [situasi] dalam bahasa Jepang adalah...",
-      "options": ["A", "B", "C", "D"],
-      "correctAnswer": "jawaban benar",
-      "explanation": "penjelasan pola grammar yang digunakan",
-      "difficulty": "${selectedLevel}"
+      "question": "soal grammar di sini",
+      "options": ["pilihan A", "pilihan B", "pilihan C", "pilihan D"],
+      "correctAnswer": "pilihan yang benar",
+      "explanation": "penjelasan jawaban"
     },
     {
-      "id": "culture_${uniqueId}",
       "category": "culture",
-      "question": "Dalam budaya Jepang, ketika [situasi_budaya], yang biasanya dilakukan adalah...",
-      "options": ["A", "B", "C", "D"],
-      "correctAnswer": "jawaban benar",
-      "explanation": "penjelasan konteks budaya dan alasannya",
-      "difficulty": "${selectedLevel}"
+      "question": "soal budaya di sini", 
+      "options": ["pilihan A", "pilihan B", "pilihan C", "pilihan D"],
+      "correctAnswer": "pilihan yang benar",
+      "explanation": "penjelasan jawaban"
     },
     {
-      "id": "practical_${uniqueId}",
       "category": "practical",
-      "question": "Jika Anda berada di Jepang dan ingin [tujuan_praktis], ungkapan yang tepat adalah...",
-      "options": ["A", "B", "C", "D"],
-      "correctAnswer": "jawaban benar",
-      "explanation": "penjelasan penggunaan praktis ungkapan",
-      "difficulty": "${selectedLevel}"
+      "question": "soal praktis di sini",
+      "options": ["pilihan A", "pilihan B", "pilihan C", "pilihan D"], 
+      "correctAnswer": "pilihan yang benar",
+      "explanation": "penjelasan jawaban"
     },
     {
-      "id": "comprehension_${uniqueId}",
       "category": "comprehension",
-      "question": "Ungkapan '[ungkapan_jepang]' biasanya digunakan dalam konteks...",
-      "options": ["A", "B", "C", "D"],
-      "correctAnswer": "jawaban benar",
-      "explanation": "penjelasan konteks dan nuansa penggunaan",
-      "difficulty": "${selectedLevel}"
+      "question": "soal pemahaman di sini",
+      "options": ["pilihan A", "pilihan B", "pilihan C", "pilihan D"],
+      "correctAnswer": "pilihan yang benar", 
+      "explanation": "penjelasan jawaban"
     }
   ]
 }
 
-GENERATE QUIZ SEKARANG!`;
+HANYA RESPONSE JSON SAJA, JANGAN ADA TEKS LAIN!`;
 
       console.log('📝 Sending AI Quiz request...');
+      console.log('Endpoint:', settings.azureOpenAI.backendEndpoint);
+      console.log('API Key present:', !!settings.azureOpenAI.apiKey);
 
       const response = await fetch(settings.azureOpenAI.backendEndpoint, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${settings.azureOpenAI.apiKey}`,
+          'api-key': settings.azureOpenAI.apiKey,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -223,18 +169,22 @@ GENERATE QUIZ SEKARANG!`;
             { role: 'user', content: prompt }
           ],
           max_tokens: 3000,
-          temperature: 0.9,
+          temperature: 0.7,
           top_p: 0.95,
-          frequency_penalty: 1.0,
-          presence_penalty: 0.9
+          frequency_penalty: 0.8,
+          presence_penalty: 0.6
         })
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Azure OpenAI Response Error:', errorText);
         throw new Error(`Azure OpenAI Error: ${response.status} - ${response.statusText}`);
       }
 
       const result = await response.json();
+      console.log('Full Azure OpenAI Response:', result);
+      
       const content = result.choices[0]?.message?.content;
 
       if (!content) {
@@ -243,13 +193,56 @@ GENERATE QUIZ SEKARANG!`;
 
       console.log('🔍 Parsing AI response...');
       
+      console.log('Raw AI response:', content);
+      
       let aiQuiz;
       try {
-        const cleanContent = content.replace(/```json\n?|\n?```/g, '').trim();
+        // Multiple cleaning attempts for different response formats
+        let cleanContent = content.trim();
+        
+        // Remove markdown code blocks
+        cleanContent = cleanContent.replace(/```json\n?|\n?```/g, '');
+        cleanContent = cleanContent.replace(/```\n?|\n?```/g, '');
+        
+        // Remove any text before the first {
+        const jsonStart = cleanContent.indexOf('{');
+        if (jsonStart > 0) {
+          cleanContent = cleanContent.substring(jsonStart);
+        }
+        
+        // Remove any text after the last }
+        const jsonEnd = cleanContent.lastIndexOf('}');
+        if (jsonEnd > 0) {
+          cleanContent = cleanContent.substring(0, jsonEnd + 1);
+        }
+        
+        // Try to fix common JSON issues
+        cleanContent = cleanContent.replace(/,\s*}/g, '}'); // Remove trailing commas
+        cleanContent = cleanContent.replace(/,\s*]/g, ']'); // Remove trailing commas in arrays
+        
+        console.log('Cleaned content for parsing:', cleanContent);
+        
         aiQuiz = JSON.parse(cleanContent);
       } catch (parseError) {
         console.error('JSON Parse Error:', parseError);
-        throw new Error('Format response AI tidak valid');
+        console.log('Failed to parse content:', content);
+        
+        // Try alternative parsing - extract JSON using regex
+        try {
+          const jsonRegex = /\{[\s\S]*\}/;
+          const match = content.match(jsonRegex);
+          if (match) {
+            aiQuiz = JSON.parse(match[0]);
+            console.log('Successfully parsed with regex fallback');
+          } else {
+            throw new Error('No JSON found in response');
+          }
+        } catch (regexError) {
+          console.error('Regex parsing also failed:', regexError);
+          console.log('Falling back to predefined quiz due to parsing failure');
+          generateFallbackQuiz();
+          return;
+        }
       }
 
       if (!aiQuiz.questions || !Array.isArray(aiQuiz.questions)) {
@@ -269,7 +262,44 @@ GENERATE QUIZ SEKARANG!`;
 
     } catch (error) {
       console.error('❌ Error generating AI quiz:', error);
-      setError(error instanceof Error ? error.message : 'Error generating quiz');
+      
+      // Detailed error logging
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+      
+      // Check specific error types
+      let errorMessage = 'Error generating quiz';
+      if (error instanceof Error) {
+        if (error.message.includes('Azure OpenAI tidak dikonfigurasi')) {
+          errorMessage = 'Azure OpenAI belum dikonfigurasi. Silakan konfigurasi di panel Settings.';
+        } else if (error.message.includes('400')) {
+          errorMessage = 'Request tidak valid. Periksa konfigurasi API.';
+        } else if (error.message.includes('401')) {
+          errorMessage = 'API Key tidak valid. Periksa konfigurasi Azure OpenAI.';
+        } else if (error.message.includes('403')) {
+          errorMessage = 'Akses ditolak. Periksa permissions Azure OpenAI.';
+        } else if (error.message.includes('429')) {
+          errorMessage = 'Rate limit exceeded. Coba lagi dalam beberapa saat.';
+        } else if (error.message.includes('500')) {
+          errorMessage = 'Server error. Coba lagi nanti.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setError(errorMessage);
+      
+      // Auto fallback for certain errors
+      if (error instanceof Error && 
+          (error.message.includes('Format response') || 
+           error.message.includes('tidak valid') ||
+           error.message.includes('parsing'))) {
+        console.log('🔄 Auto-falling back to predefined quiz due to response error');
+        generateFallbackQuiz();
+        return;
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -333,6 +363,66 @@ GENERATE QUIZ SEKARANG!`;
     }
     
     return validQuestions;
+  };
+
+  const generateFallbackQuiz = () => {
+    console.log('🔧 Generating fallback quiz...');
+    
+    const fallbackQuestions: QuizQuestion[] = [
+      {
+        id: `fallback_vocab_${Date.now()}`,
+        type: 'multiple-choice',
+        category: 'vocabulary',
+        question: `Kata '家族' dalam bahasa Indonesia berarti:`,
+        options: ['Keluarga', 'Teman', 'Tetangga', 'Rekan kerja'],
+        correctAnswer: 'Keluarga',
+        explanation: 'Kata 家族 (kazoku) berarti keluarga dalam bahasa Indonesia.',
+        points: 20
+      },
+      {
+        id: `fallback_grammar_${Date.now()}`,
+        type: 'multiple-choice', 
+        category: 'grammar',
+        question: `Untuk menyatakan "sedang melakukan sesuatu" dalam bahasa Jepang, pola yang benar adalah:`,
+        options: ['～ています', '～ました', '～ます', '～でした'],
+        correctAnswer: '～ています',
+        explanation: 'Pola ～ています digunakan untuk menyatakan kegiatan yang sedang berlangsung.',
+        points: 20
+      },
+      {
+        id: `fallback_culture_${Date.now()}`,
+        type: 'multiple-choice',
+        category: 'culture', 
+        question: 'Dalam budaya Jepang, saat bertemu dengan orang yang lebih tua atau atasan, yang biasanya dilakukan adalah:',
+        options: ['Membungkukkan badan (ojigi)', 'Berjabat tangan', 'Melambaikan tangan', 'Menganggukkan kepala saja'],
+        correctAnswer: 'Membungkukkan badan (ojigi)',
+        explanation: 'Ojigi (membungkukkan badan) adalah cara menunjukkan rasa hormat dalam budaya Jepang.',
+        points: 20
+      },
+      {
+        id: `fallback_practical_${Date.now()}`,
+        type: 'multiple-choice',
+        category: 'practical',
+        question: 'Jika ingin memesan makanan di restoran Jepang, ungkapan yang tepat adalah:',
+        options: ['注文をお願いします', 'ありがとうございます', 'すみません', 'いらっしゃいませ'],
+        correctAnswer: '注文をお願いします',
+        explanation: '注文をお願いします (chuumon wo onegaishimasu) berarti "tolong pesanan" yang tepat untuk memesan makanan.',
+        points: 20
+      },
+      {
+        id: `fallback_comprehension_${Date.now()}`,
+        type: 'multiple-choice',
+        category: 'comprehension',
+        question: 'Ungkapan "お疲れ様" biasanya digunakan dalam konteks:',
+        options: ['Mengucapkan terima kasih atas kerja keras', 'Menyapa di pagi hari', 'Meminta maaf', 'Mengucapkan selamat tinggal'],
+        correctAnswer: 'Mengucapkan terima kasih atas kerja keras',
+        explanation: 'お疲れ様 (otsukaresama) digunakan untuk menghargai usaha dan kerja keras seseorang.',
+        points: 20
+      }
+    ];
+    
+    setQuestions(fallbackQuestions);
+    setQuizStartTime(Date.now());
   };
 
   const handleAnswer = (answer: string) => {
@@ -480,8 +570,8 @@ GENERATE QUIZ SEKARANG!`;
             </div>
           )}
 
-          {/* Generate Button */}
-          <div className="text-center mb-6">
+          {/* Generate Buttons */}
+          <div className="text-center mb-6 space-y-3">
             <button
               onClick={generateAIQuiz}
               disabled={selectedTopic === 'custom' && !customTopic.trim()}
@@ -489,6 +579,16 @@ GENERATE QUIZ SEKARANG!`;
             >
               <Zap className="h-5 w-5" />
               <span className="font-semibold">Generate AI Quiz</span>
+            </button>
+            
+            <div className="text-sm text-gray-500">atau</div>
+            
+            <button
+              onClick={generateFallbackQuiz}
+              className="flex items-center justify-center space-x-2 mx-auto px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all"
+            >
+              <Target className="h-4 w-4" />
+              <span>Quiz Standar (Tanpa AI)</span>
             </button>
           </div>
 
@@ -529,6 +629,46 @@ GENERATE QUIZ SEKARANG!`;
               <li>• Topik dapat disesuaikan atau menggunakan topik kustom</li>
               <li>• Analisis performa dan tracking progress</li>
             </ul>
+          </div>
+
+          {/* Debug Info */}
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-4">
+            <h4 className="font-semibold text-gray-800 mb-2">
+              <AlertCircle className="h-4 w-4 inline mr-2" />
+              Status Konfigurasi:
+            </h4>
+            <div className="text-sm space-y-1">
+              {(() => {
+                const settings = JSON.parse(localStorage.getItem('kotobaid-api-settings') || '{}');
+                return (
+                  <>
+                    <div className={`flex items-center space-x-2 ${settings.azureOpenAI?.enabled ? 'text-green-600' : 'text-red-600'}`}>
+                      <div className="w-2 h-2 rounded-full bg-current"></div>
+                      <span>Azure OpenAI: {settings.azureOpenAI?.enabled ? 'Enabled' : 'Disabled'}</span>
+                    </div>
+                    <div className={`flex items-center space-x-2 ${settings.azureOpenAI?.backendEndpoint ? 'text-green-600' : 'text-red-600'}`}>
+                      <div className="w-2 h-2 rounded-full bg-current"></div>
+                      <span>Endpoint: {settings.azureOpenAI?.backendEndpoint ? 'Configured' : 'Not configured'}</span>
+                    </div>
+                    <div className={`flex items-center space-x-2 ${settings.azureOpenAI?.apiKey ? 'text-green-600' : 'text-red-600'}`}>
+                      <div className="w-2 h-2 rounded-full bg-current"></div>
+                      <span>API Key: {settings.azureOpenAI?.apiKey ? 'Configured' : 'Not configured'}</span>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+            {(() => {
+              const settings = JSON.parse(localStorage.getItem('kotobaid-api-settings') || '{}');
+              if (!settings.azureOpenAI?.enabled || !settings.azureOpenAI?.backendEndpoint || !settings.azureOpenAI?.apiKey) {
+                return (
+                  <div className="mt-3 p-2 bg-yellow-100 border border-yellow-300 rounded text-yellow-800 text-sm">
+                    ⚠️ Azure OpenAI belum dikonfigurasi. Gunakan "Quiz Standar" atau konfigurasi di Settings.
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
         </div>
       </div>
