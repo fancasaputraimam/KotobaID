@@ -91,89 +91,11 @@ const AIQuizGenerator: React.FC = () => {
       const topicText = selectedTopic === 'custom' ? customTopic : 
         topics.find(t => t.value === selectedTopic)?.label || 'kehidupan sehari-hari';
 
-      const prompt = `Create a comprehensive Japanese JLPT ${selectedLevel} quiz about ${topicText}. Generate EXACTLY 10 unique questions covering different aspects. Return ONLY valid JSON format.
+      const prompt = `Generate 10 Japanese quiz questions for JLPT ${selectedLevel} about ${topicText}. Return only this JSON format:
 
-Requirements:
-- Exactly 10 questions
-- Mix of vocabulary, grammar, culture, practical usage, and comprehension
-- Each question must be unique and test different knowledge
-- Appropriate for JLPT ${selectedLevel} level
-- All text in Indonesian except Japanese examples
+{"questions":[{"category":"vocabulary","question":"Kata 'konnichiwa' berarti","options":["Selamat pagi","Selamat siang","Selamat malam","Sampai jumpa"],"correctAnswer":"Selamat siang","explanation":"Konnichiwa digunakan untuk menyapa di siang hari"},{"category":"grammar","question":"Pola untuk menyatakan kemampuan adalah","options":["dekiru","dekimasu","dekinai","dekimasen"],"correctAnswer":"dekiru","explanation":"Dekiru digunakan untuk menyatakan kemampuan"},{"category":"culture","question":"Saat membungkuk dalam budaya Jepang disebut","options":["Ojigi","Arigato","Sumimasen","Hai"],"correctAnswer":"Ojigi","explanation":"Ojigi adalah tradisi membungkuk sebagai bentuk hormat"},{"category":"practical","question":"Untuk berterima kasih di restoran","options":["Arigatou gozaimasu","Sumimasen","Onegaishimasu","Gochisousama"],"correctAnswer":"Arigatou gozaimasu","explanation":"Arigatou gozaimasu adalah ucapan terima kasih formal"},{"category":"comprehension","question":"Otsukaresama digunakan untuk","options":["Mengucapkan terima kasih atas kerja keras","Menyapa pagi","Meminta maaf","Mengucapkan selamat"],"correctAnswer":"Mengucapkan terima kasih atas kerja keras","explanation":"Otsukaresama menghargai usaha seseorang"},{"category":"vocabulary","question":"Kata 'gakkou' berarti","options":["Sekolah","Rumah","Kantor","Toko"],"correctAnswer":"Sekolah","explanation":"Gakkou adalah kata untuk sekolah"},{"category":"grammar","question":"Untuk menanyakan waktu menggunakan","options":["Nanji desu ka","Dare desu ka","Doko desu ka","Nani desu ka"],"correctAnswer":"Nanji desu ka","explanation":"Nanji desu ka berarti jam berapa"},{"category":"culture","question":"Festival musim semi di Jepang","options":["Hanami","Matsuri","Tanabata","Obon"],"correctAnswer":"Hanami","explanation":"Hanami adalah festival melihat bunga sakura"},{"category":"practical","question":"Untuk memesan makanan","options":["Kore wo kudasai","Arigato","Sayonara","Ohayo"],"correctAnswer":"Kore wo kudasai","explanation":"Kore wo kudasai berarti tolong yang ini"},{"category":"comprehension","question":"Itadakimasu diucapkan","options":["Sebelum makan","Setelah makan","Saat bertemu","Saat berpisah"],"correctAnswer":"Sebelum makan","explanation":"Itadakimasu diucapkan sebelum mulai makan"}]}
 
-{
-  "questions": [
-    {
-      "category": "vocabulary",
-      "question": "Kata '___' dalam bahasa Indonesia berarti:",
-      "options": ["option1", "option2", "option3", "option4"],
-      "correctAnswer": "option1",
-      "explanation": "detailed explanation"
-    },
-    {
-      "category": "grammar",
-      "question": "Pola tata bahasa yang benar untuk menyatakan ___ adalah:",
-      "options": ["option1", "option2", "option3", "option4"],
-      "correctAnswer": "option1",
-      "explanation": "grammar explanation"
-    },
-    {
-      "category": "culture",
-      "question": "Dalam budaya Jepang, ketika ___, yang biasanya dilakukan adalah:",
-      "options": ["option1", "option2", "option3", "option4"],
-      "correctAnswer": "option1",
-      "explanation": "cultural context"
-    },
-    {
-      "category": "practical",
-      "question": "Jika Anda ingin ___ dalam bahasa Jepang, ungkapan yang tepat adalah:",
-      "options": ["option1", "option2", "option3", "option4"],
-      "correctAnswer": "option1",
-      "explanation": "practical usage"
-    },
-    {
-      "category": "comprehension",
-      "question": "Ungkapan '___' biasanya digunakan dalam konteks:",
-      "options": ["option1", "option2", "option3", "option4"],
-      "correctAnswer": "option1",
-      "explanation": "context explanation"
-    },
-    {
-      "category": "vocabulary",
-      "question": "Sinonim dari kata '___' adalah:",
-      "options": ["option1", "option2", "option3", "option4"],
-      "correctAnswer": "option1",
-      "explanation": "synonym explanation"
-    },
-    {
-      "category": "grammar",
-      "question": "Bentuk keigo (bahasa hormat) dari '___' adalah:",
-      "options": ["option1", "option2", "option3", "option4"],
-      "correctAnswer": "option1",
-      "explanation": "keigo explanation"
-    },
-    {
-      "category": "culture",
-      "question": "Perbedaan antara ___ dan ___ dalam konteks budaya adalah:",
-      "options": ["option1", "option2", "option3", "option4"],
-      "correctAnswer": "option1",
-      "explanation": "cultural difference"
-    },
-    {
-      "category": "practical",
-      "question": "Dalam situasi ___, respons yang paling tepat adalah:",
-      "options": ["option1", "option2", "option3", "option4"],
-      "correctAnswer": "option1",
-      "explanation": "situational usage"
-    },
-    {
-      "category": "comprehension",
-      "question": "Nuansa makna dari ungkapan '___' adalah:",
-      "options": ["option1", "option2", "option3", "option4"],
-      "correctAnswer": "option1",
-      "explanation": "nuance explanation"
-    }
-  ]
-}`;
+Generate similar 10 questions for ${selectedLevel} level about ${topicText}:`;
 
       console.log('📝 Sending AI Quiz request...');
       console.log('Endpoint:', settings.azureOpenAI.backendEndpoint);
@@ -218,78 +140,52 @@ Requirements:
 
       console.log('🔍 Parsing AI response...');
       
-      console.log('Raw AI response:', content);
-      console.log('Response length:', content.length);
+      console.log('🔍 Raw AI response:', content);
+      console.log('📏 Response length:', content.length);
       
       let aiQuiz;
       try {
-        // Step 1: Basic cleaning
-        let cleanContent = content.trim();
-        console.log('Step 1 - After trim:', cleanContent.substring(0, 100) + '...');
+        // Simple and direct approach
+        let jsonContent = content.trim();
         
-        // Step 2: Remove markdown
-        cleanContent = cleanContent.replace(/```json\s*/g, '');
-        cleanContent = cleanContent.replace(/```\s*/g, '');
-        cleanContent = cleanContent.replace(/```/g, '');
-        console.log('Step 2 - After markdown removal:', cleanContent.substring(0, 100) + '...');
-        
-        // Step 3: Find JSON boundaries
-        const jsonStart = cleanContent.indexOf('{');
-        const jsonEnd = cleanContent.lastIndexOf('}');
-        
-        if (jsonStart === -1 || jsonEnd === -1) {
-          throw new Error('No JSON brackets found');
+        // Remove any text before first {
+        const jsonStart = jsonContent.indexOf('{');
+        if (jsonStart > 0) {
+          jsonContent = jsonContent.substring(jsonStart);
         }
         
-        cleanContent = cleanContent.substring(jsonStart, jsonEnd + 1);
-        console.log('Step 3 - After bracket extraction:', cleanContent.substring(0, 100) + '...');
+        // Remove any text after last }
+        const jsonEnd = jsonContent.lastIndexOf('}');
+        if (jsonEnd > 0) {
+          jsonContent = jsonContent.substring(0, jsonEnd + 1);
+        }
         
-        // Step 4: Fix common JSON issues
-        cleanContent = cleanContent.replace(/,(\s*[}\]])/g, '$1'); // Remove trailing commas
-        cleanContent = cleanContent.replace(/([{,]\s*)(\w+):/g, '$1"$2":'); // Add quotes to keys
-        console.log('Step 4 - After JSON fixes:', cleanContent.substring(0, 100) + '...');
+        console.log('🔧 Cleaned JSON:', jsonContent.substring(0, 200) + '...');
         
-        // Step 5: Try parsing
-        aiQuiz = JSON.parse(cleanContent);
-        console.log('✅ Successfully parsed JSON');
+        // Try direct parsing
+        aiQuiz = JSON.parse(jsonContent);
+        console.log('✅ JSON parsed successfully');
         
       } catch (parseError) {
-        console.error('❌ Primary JSON Parse Error:', parseError);
+        console.error('❌ JSON parsing failed:', parseError);
+        console.error('🔍 Content that failed to parse:', content);
         
-        // Fallback 1: Try to extract with more aggressive regex
-        try {
-          console.log('🔄 Attempting regex fallback...');
-          const jsonRegex = /\{[\s\S]*"questions"[\s\S]*\]/;
-          const match = content.match(jsonRegex);
-          
-          if (match) {
-            let extracted = match[0];
-            if (!extracted.endsWith('}')) {
-              extracted += '}';
+        // If parsing fails, create a simple fallback structure
+        console.log('🔄 Creating minimal fallback structure...');
+        aiQuiz = {
+          questions: [
+            {
+              category: "vocabulary",
+              question: "Test question - AI response parsing failed",
+              options: ["Option A", "Option B", "Option C", "Option D"],
+              correctAnswer: "Option A",
+              explanation: "This is a fallback question due to parsing error"
             }
-            aiQuiz = JSON.parse(extracted);
-            console.log('✅ Regex fallback successful');
-          } else {
-            throw new Error('No JSON structure found');
-          }
-        } catch (regexError) {
-          console.error('❌ Regex parsing failed:', regexError);
-          
-          // Fallback 2: Try to manually construct JSON from response
-          try {
-            console.log('🔄 Attempting manual construction...');
-            const questionMatches = content.match(/"question":\s*"([^"]+)"/g);
-            if (questionMatches && questionMatches.length >= 3) {
-              console.log('✅ Found questions in response but cannot parse properly');
-              throw new Error('Format response AI tidak dapat diproses. Silakan coba lagi.');
-            } else {
-              throw new Error('Tidak ada soal yang ditemukan dalam response AI.');
-            }
-          } catch (manualError) {
-            console.error('❌ Manual construction failed:', manualError);
-            throw new Error('Format response AI tidak valid. Silakan coba lagi dengan topik atau level yang berbeda.');
-          }
-        }
+          ]
+        };
+        
+        // But still throw error to let user know something went wrong
+        throw new Error(`AI response format tidak valid. Raw response: ${content.substring(0, 200)}...`);
       }
 
       if (!aiQuiz || typeof aiQuiz !== 'object') {
@@ -576,6 +472,61 @@ Requirements:
     return '💪 Keep trying! Cobalah fokus pada area yang lemah.';
   };
 
+  const testConnection = async () => {
+    console.log('🔧 Testing Azure OpenAI connection...');
+    setIsGenerating(true);
+    setError(null);
+    
+    try {
+      const settings = JSON.parse(localStorage.getItem('kotobaid-api-settings') || '{}');
+      
+      if (!settings.azureOpenAI?.enabled || !settings.azureOpenAI.backendEndpoint || !settings.azureOpenAI.apiKey) {
+        throw new Error('Azure OpenAI configuration is missing');
+      }
+
+      const testPrompt = 'Say "Hello World" in JSON format: {"message": "Hello World"}';
+      
+      const response = await fetch(settings.azureOpenAI.backendEndpoint, {
+        method: 'POST',
+        headers: {
+          'api-key': settings.azureOpenAI.apiKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messages: [
+            { role: 'user', content: testPrompt }
+          ],
+          max_tokens: 100,
+          temperature: 0.1
+        })
+      });
+
+      console.log('Test response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Test response error:', errorText);
+        throw new Error(`Connection test failed: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('Test response:', result);
+      
+      const testContent = result.choices[0]?.message?.content;
+      console.log('Test content:', testContent);
+      
+      alert(`✅ Connection test successful!\n\nResponse: ${testContent}\nStatus: ${response.status}`);
+      
+    } catch (error) {
+      console.error('❌ Connection test failed:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      alert(`❌ Connection test failed!\n\nError: ${errorMsg}`);
+      setError(`Connection test failed: ${errorMsg}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const resetQuiz = () => {
     setQuestions([]);
     setCurrentQuestionIndex(0);
@@ -655,7 +606,7 @@ Requirements:
           )}
 
           {/* Generate Button */}
-          <div className="text-center mb-6">
+          <div className="text-center mb-6 space-y-3">
             <button
               onClick={generateAIQuiz}
               disabled={selectedTopic === 'custom' && !customTopic.trim()}
@@ -664,7 +615,16 @@ Requirements:
               <Zap className="h-5 w-5" />
               <span className="font-semibold">Generate AI Quiz (10 Soal)</span>
             </button>
-            <p className="text-sm text-gray-600 mt-2">Quiz akan dibuat otomatis oleh AI dengan 10 soal yang unik</p>
+            <p className="text-sm text-gray-600">Quiz akan dibuat otomatis oleh AI dengan 10 soal yang unik</p>
+            
+            <button
+              onClick={testConnection}
+              disabled={isGenerating}
+              className="flex items-center justify-center space-x-2 mx-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
+            >
+              <Target className="h-4 w-4" />
+              <span>Test Azure OpenAI Connection</span>
+            </button>
           </div>
 
           {/* Quiz History */}
@@ -779,6 +739,22 @@ Requirements:
           <AlertCircle className="h-16 w-16 mx-auto text-red-600 mb-4" />
           <h3 className="text-xl font-bold text-gray-900 mb-2">Error Generate Quiz</h3>
           <p className="text-red-600 mb-4">{error}</p>
+          
+          {/* Debug info */}
+          <details className="mb-4 text-left">
+            <summary className="cursor-pointer text-sm text-gray-600 hover:text-gray-800">
+              🔍 Debug Information (Click to expand)
+            </summary>
+            <div className="mt-2 p-3 bg-gray-100 rounded text-xs text-gray-700 overflow-auto max-h-40">
+              <div><strong>Timestamp:</strong> {new Date().toISOString()}</div>
+              <div><strong>Selected Level:</strong> {selectedLevel}</div>
+              <div><strong>Selected Topic:</strong> {selectedTopic}</div>
+              <div><strong>Error Details:</strong> {error}</div>
+              <div><strong>Azure Config Check:</strong></div>
+              <pre>{JSON.stringify(JSON.parse(localStorage.getItem('kotobaid-api-settings') || '{}'), null, 2)}</pre>
+            </div>
+          </details>
+          
           <div className="flex justify-center space-x-4">
             <button
               onClick={generateAIQuiz}
@@ -786,6 +762,13 @@ Requirements:
             >
               <RefreshCw className="h-4 w-4" />
               <span>Coba Lagi</span>
+            </button>
+            <button
+              onClick={testConnection}
+              className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              <Zap className="h-4 w-4" />
+              <span>Test Connection</span>
             </button>
             <button
               onClick={resetQuiz}
