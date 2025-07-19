@@ -23,7 +23,7 @@ const APISettings: React.FC = () => {
     },
     speechToText: {
       provider: 'azure-openai-stt',
-      endpoint: 'https://your-resource.openai.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2024-06-01',
+      endpoint: 'https://jabal-md08zjyh-eastus2.cognitiveservices.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2025-03-01-preview',
       apiKey: '',
       model: 'gpt-4o-transcribe',
       language: 'ja',
@@ -889,7 +889,7 @@ const APISettings: React.FC = () => {
                     speechToText: { ...prev.speechToText, endpoint: e.target.value }
                   }))}
                   className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="https://your-resource.openai.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2024-06-01"
+                  placeholder="https://jabal-md08zjyh-eastus2.cognitiveservices.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2025-03-01-preview"
                 />
                 <button
                   onClick={() => copyToClipboard(settings.speechToText.endpoint)}
@@ -1004,7 +1004,7 @@ const APISettings: React.FC = () => {
             <h4 className="font-medium text-red-800 mb-2">Tips Konfigurasi Azure OpenAI STT:</h4>
             <div className="text-sm text-red-700 space-y-1">
               <p>• Model: gunakan <code>gpt-4o-transcribe</code> untuk Speech-to-Text</p>
-              <p>• Endpoint format: <code>https://your-resource.openai.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2024-06-01</code></p>
+              <p>• Endpoint format: <code>https://jabal-md08zjyh-eastus2.cognitiveservices.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2025-03-01-preview</code></p>
               <p>• Language: ja (Japanese), en (English), id (Indonesian)</p>
               <p>• API Key dari Azure OpenAI resource yang sama</p>
               <p>• File audio harus dalam format yang didukung (wav, mp3, mp4, etc.)</p>
