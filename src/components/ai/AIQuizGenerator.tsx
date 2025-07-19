@@ -91,64 +91,89 @@ const AIQuizGenerator: React.FC = () => {
       const topicText = selectedTopic === 'custom' ? customTopic : 
         topics.find(t => t.value === selectedTopic)?.label || 'kehidupan sehari-hari';
 
-      const prompt = `Buat quiz bahasa Jepang level ${selectedLevel} dengan topik ${topicText}.
+      const prompt = `Create a comprehensive Japanese JLPT ${selectedLevel} quiz about ${topicText}. Generate EXACTLY 10 unique questions covering different aspects. Return ONLY valid JSON format.
 
-WAJIB BUAT TEPAT 5 SOAL dengan kategori berbeda:
-1. VOCABULARY - kosakata
-2. GRAMMAR - tata bahasa  
-3. CULTURE - budaya Jepang
-4. PRACTICAL - ungkapan praktis
-5. COMPREHENSION - pemahaman konteks
+Requirements:
+- Exactly 10 questions
+- Mix of vocabulary, grammar, culture, practical usage, and comprehension
+- Each question must be unique and test different knowledge
+- Appropriate for JLPT ${selectedLevel} level
+- All text in Indonesian except Japanese examples
 
-CONTOH FORMAT SOAL:
-VOCABULARY: "Kata '学校' dalam bahasa Indonesia berarti..."
-GRAMMAR: "Untuk menyatakan kegiatan yang sedang berlangsung, pola yang benar adalah..."
-CULTURE: "Dalam budaya Jepang, saat bertemu orang yang lebih tua, yang dilakukan adalah..."
-PRACTICAL: "Jika ingin memesan makanan di restoran, ungkapan yang tepat adalah..."
-COMPREHENSION: "Ungkapan 'おつかれさま' biasanya digunakan untuk..."
-
-WAJIB RESPONSE FORMAT JSON:
 {
   "questions": [
     {
       "category": "vocabulary",
-      "question": "soal vocabulary di sini",
-      "options": ["pilihan A", "pilihan B", "pilihan C", "pilihan D"],
-      "correctAnswer": "pilihan yang benar",
-      "explanation": "penjelasan jawaban"
+      "question": "Kata '___' dalam bahasa Indonesia berarti:",
+      "options": ["option1", "option2", "option3", "option4"],
+      "correctAnswer": "option1",
+      "explanation": "detailed explanation"
     },
     {
-      "category": "grammar", 
-      "question": "soal grammar di sini",
-      "options": ["pilihan A", "pilihan B", "pilihan C", "pilihan D"],
-      "correctAnswer": "pilihan yang benar",
-      "explanation": "penjelasan jawaban"
+      "category": "grammar",
+      "question": "Pola tata bahasa yang benar untuk menyatakan ___ adalah:",
+      "options": ["option1", "option2", "option3", "option4"],
+      "correctAnswer": "option1",
+      "explanation": "grammar explanation"
     },
     {
       "category": "culture",
-      "question": "soal budaya di sini", 
-      "options": ["pilihan A", "pilihan B", "pilihan C", "pilihan D"],
-      "correctAnswer": "pilihan yang benar",
-      "explanation": "penjelasan jawaban"
+      "question": "Dalam budaya Jepang, ketika ___, yang biasanya dilakukan adalah:",
+      "options": ["option1", "option2", "option3", "option4"],
+      "correctAnswer": "option1",
+      "explanation": "cultural context"
     },
     {
       "category": "practical",
-      "question": "soal praktis di sini",
-      "options": ["pilihan A", "pilihan B", "pilihan C", "pilihan D"], 
-      "correctAnswer": "pilihan yang benar",
-      "explanation": "penjelasan jawaban"
+      "question": "Jika Anda ingin ___ dalam bahasa Jepang, ungkapan yang tepat adalah:",
+      "options": ["option1", "option2", "option3", "option4"],
+      "correctAnswer": "option1",
+      "explanation": "practical usage"
     },
     {
       "category": "comprehension",
-      "question": "soal pemahaman di sini",
-      "options": ["pilihan A", "pilihan B", "pilihan C", "pilihan D"],
-      "correctAnswer": "pilihan yang benar", 
-      "explanation": "penjelasan jawaban"
+      "question": "Ungkapan '___' biasanya digunakan dalam konteks:",
+      "options": ["option1", "option2", "option3", "option4"],
+      "correctAnswer": "option1",
+      "explanation": "context explanation"
+    },
+    {
+      "category": "vocabulary",
+      "question": "Sinonim dari kata '___' adalah:",
+      "options": ["option1", "option2", "option3", "option4"],
+      "correctAnswer": "option1",
+      "explanation": "synonym explanation"
+    },
+    {
+      "category": "grammar",
+      "question": "Bentuk keigo (bahasa hormat) dari '___' adalah:",
+      "options": ["option1", "option2", "option3", "option4"],
+      "correctAnswer": "option1",
+      "explanation": "keigo explanation"
+    },
+    {
+      "category": "culture",
+      "question": "Perbedaan antara ___ dan ___ dalam konteks budaya adalah:",
+      "options": ["option1", "option2", "option3", "option4"],
+      "correctAnswer": "option1",
+      "explanation": "cultural difference"
+    },
+    {
+      "category": "practical",
+      "question": "Dalam situasi ___, respons yang paling tepat adalah:",
+      "options": ["option1", "option2", "option3", "option4"],
+      "correctAnswer": "option1",
+      "explanation": "situational usage"
+    },
+    {
+      "category": "comprehension",
+      "question": "Nuansa makna dari ungkapan '___' adalah:",
+      "options": ["option1", "option2", "option3", "option4"],
+      "correctAnswer": "option1",
+      "explanation": "nuance explanation"
     }
   ]
-}
-
-HANYA RESPONSE JSON SAJA, JANGAN ADA TEKS LAIN!`;
+}`;
 
       console.log('📝 Sending AI Quiz request...');
       console.log('Endpoint:', settings.azureOpenAI.backendEndpoint);
@@ -164,15 +189,15 @@ HANYA RESPONSE JSON SAJA, JANGAN ADA TEKS LAIN!`;
           messages: [
             { 
               role: 'system', 
-              content: 'Anda adalah expert quiz generator bahasa Jepang JLPT yang sangat ketat dalam anti-duplikasi. Setiap soal harus unik, akurat, dan sesuai level. Gunakan pengetahuan mendalam tentang JLPT dan budaya Jepang.'
+              content: 'You are a Japanese language quiz generator. Return only valid JSON format with exactly 10 questions. No additional text or explanations.'
             },
             { role: 'user', content: prompt }
           ],
-          max_tokens: 3000,
-          temperature: 0.7,
-          top_p: 0.95,
-          frequency_penalty: 0.8,
-          presence_penalty: 0.6
+          max_tokens: 4000,
+          temperature: 0.3,
+          top_p: 0.8,
+          frequency_penalty: 0.5,
+          presence_penalty: 0.3
         })
       });
 
@@ -194,66 +219,106 @@ HANYA RESPONSE JSON SAJA, JANGAN ADA TEKS LAIN!`;
       console.log('🔍 Parsing AI response...');
       
       console.log('Raw AI response:', content);
+      console.log('Response length:', content.length);
       
       let aiQuiz;
       try {
-        // Multiple cleaning attempts for different response formats
+        // Step 1: Basic cleaning
         let cleanContent = content.trim();
+        console.log('Step 1 - After trim:', cleanContent.substring(0, 100) + '...');
         
-        // Remove markdown code blocks
-        cleanContent = cleanContent.replace(/```json\n?|\n?```/g, '');
-        cleanContent = cleanContent.replace(/```\n?|\n?```/g, '');
+        // Step 2: Remove markdown
+        cleanContent = cleanContent.replace(/```json\s*/g, '');
+        cleanContent = cleanContent.replace(/```\s*/g, '');
+        cleanContent = cleanContent.replace(/```/g, '');
+        console.log('Step 2 - After markdown removal:', cleanContent.substring(0, 100) + '...');
         
-        // Remove any text before the first {
+        // Step 3: Find JSON boundaries
         const jsonStart = cleanContent.indexOf('{');
-        if (jsonStart > 0) {
-          cleanContent = cleanContent.substring(jsonStart);
-        }
-        
-        // Remove any text after the last }
         const jsonEnd = cleanContent.lastIndexOf('}');
-        if (jsonEnd > 0) {
-          cleanContent = cleanContent.substring(0, jsonEnd + 1);
+        
+        if (jsonStart === -1 || jsonEnd === -1) {
+          throw new Error('No JSON brackets found');
         }
         
-        // Try to fix common JSON issues
-        cleanContent = cleanContent.replace(/,\s*}/g, '}'); // Remove trailing commas
-        cleanContent = cleanContent.replace(/,\s*]/g, ']'); // Remove trailing commas in arrays
+        cleanContent = cleanContent.substring(jsonStart, jsonEnd + 1);
+        console.log('Step 3 - After bracket extraction:', cleanContent.substring(0, 100) + '...');
         
-        console.log('Cleaned content for parsing:', cleanContent);
+        // Step 4: Fix common JSON issues
+        cleanContent = cleanContent.replace(/,(\s*[}\]])/g, '$1'); // Remove trailing commas
+        cleanContent = cleanContent.replace(/([{,]\s*)(\w+):/g, '$1"$2":'); // Add quotes to keys
+        console.log('Step 4 - After JSON fixes:', cleanContent.substring(0, 100) + '...');
         
+        // Step 5: Try parsing
         aiQuiz = JSON.parse(cleanContent);
-      } catch (parseError) {
-        console.error('JSON Parse Error:', parseError);
-        console.log('Failed to parse content:', content);
+        console.log('✅ Successfully parsed JSON');
         
-        // Try alternative parsing - extract JSON using regex
+      } catch (parseError) {
+        console.error('❌ Primary JSON Parse Error:', parseError);
+        
+        // Fallback 1: Try to extract with more aggressive regex
         try {
-          const jsonRegex = /\{[\s\S]*\}/;
+          console.log('🔄 Attempting regex fallback...');
+          const jsonRegex = /\{[\s\S]*"questions"[\s\S]*\]/;
           const match = content.match(jsonRegex);
+          
           if (match) {
-            aiQuiz = JSON.parse(match[0]);
-            console.log('Successfully parsed with regex fallback');
+            let extracted = match[0];
+            if (!extracted.endsWith('}')) {
+              extracted += '}';
+            }
+            aiQuiz = JSON.parse(extracted);
+            console.log('✅ Regex fallback successful');
           } else {
-            throw new Error('No JSON found in response');
+            throw new Error('No JSON structure found');
           }
         } catch (regexError) {
-          console.error('Regex parsing also failed:', regexError);
-          console.log('Falling back to predefined quiz due to parsing failure');
-          generateFallbackQuiz();
-          return;
+          console.error('❌ Regex parsing failed:', regexError);
+          
+          // Fallback 2: Try to manually construct JSON from response
+          try {
+            console.log('🔄 Attempting manual construction...');
+            const questionMatches = content.match(/"question":\s*"([^"]+)"/g);
+            if (questionMatches && questionMatches.length >= 3) {
+              console.log('✅ Found questions in response but cannot parse properly');
+              throw new Error('Format response AI tidak dapat diproses. Silakan coba lagi.');
+            } else {
+              throw new Error('Tidak ada soal yang ditemukan dalam response AI.');
+            }
+          } catch (manualError) {
+            console.error('❌ Manual construction failed:', manualError);
+            throw new Error('Format response AI tidak valid. Silakan coba lagi dengan topik atau level yang berbeda.');
+          }
         }
       }
 
+      if (!aiQuiz || typeof aiQuiz !== 'object') {
+        console.error('❌ Invalid aiQuiz object:', aiQuiz);
+        throw new Error('Response bukan objek JSON yang valid');
+      }
+
       if (!aiQuiz.questions || !Array.isArray(aiQuiz.questions)) {
+        console.error('❌ Invalid questions structure:', aiQuiz);
         throw new Error('Struktur questions tidak valid');
       }
+
+      if (aiQuiz.questions.length === 0) {
+        console.error('❌ No questions in response');
+        throw new Error('Tidak ada soal dalam response');
+      }
+
+      console.log(`✅ Found ${aiQuiz.questions.length} raw questions`);
 
       // Process and validate questions
       const processedQuestions = validateQuestions(aiQuiz.questions, uniqueId);
       
-      if (processedQuestions.length < 3) {
-        throw new Error('Tidak cukup soal valid setelah validasi');
+      if (processedQuestions.length < 8) {
+        console.warn(`⚠️ Only ${processedQuestions.length} valid questions, need at least 8`);
+        throw new Error(`Hanya berhasil membuat ${processedQuestions.length} soal valid. Minimal dibutuhkan 8 soal. Silakan coba lagi.`);
+      }
+      
+      if (processedQuestions.length < 10) {
+        console.warn(`⚠️ Got ${processedQuestions.length} questions instead of 10, but proceeding`);
       }
 
       console.log('✅ AI Quiz generated successfully:', processedQuestions.length, 'questions');
@@ -291,15 +356,7 @@ HANYA RESPONSE JSON SAJA, JANGAN ADA TEKS LAIN!`;
       
       setError(errorMessage);
       
-      // Auto fallback for certain errors
-      if (error instanceof Error && 
-          (error.message.includes('Format response') || 
-           error.message.includes('tidak valid') ||
-           error.message.includes('parsing'))) {
-        console.log('🔄 Auto-falling back to predefined quiz due to response error');
-        generateFallbackQuiz();
-        return;
-      }
+      // No auto fallback - force user to retry or fix configuration
     } finally {
       setIsGenerating(false);
     }
@@ -307,61 +364,88 @@ HANYA RESPONSE JSON SAJA, JANGAN ADA TEKS LAIN!`;
 
   const validateQuestions = (rawQuestions: any[], uniqueId: string): QuizQuestion[] => {
     console.log('🔍 Validating AI questions...');
+    console.log('Raw questions received:', rawQuestions);
     
-    const requiredCategories = ['vocabulary', 'grammar', 'culture', 'practical', 'comprehension'];
     const validQuestions: QuizQuestion[] = [];
     
-    for (let i = 0; i < Math.min(rawQuestions.length, 5); i++) {
+    for (let i = 0; i < rawQuestions.length; i++) {
       const q = rawQuestions[i];
-      const expectedCategory = requiredCategories[i];
+      console.log(`Validating question ${i + 1}:`, q);
       
-      // Basic validation
-      if (!q.question || !q.correctAnswer || !q.options || !Array.isArray(q.options)) {
-        console.log(`❌ Question ${i + 1} rejected: Missing required fields`);
+      // Basic validation - more permissive
+      if (!q.question || typeof q.question !== 'string') {
+        console.log(`❌ Question ${i + 1} rejected: Invalid question field`);
         continue;
       }
       
-      if (q.options.length < 4) {
-        console.log(`❌ Question ${i + 1} rejected: Insufficient options`);
+      if (!q.options || !Array.isArray(q.options)) {
+        console.log(`❌ Question ${i + 1} rejected: Invalid options field`);
         continue;
       }
       
-      // Check category match
-      if (q.category !== expectedCategory) {
-        console.log(`❌ Question ${i + 1} rejected: Wrong category`);
+      if (q.options.length < 2) {
+        console.log(`❌ Question ${i + 1} rejected: Too few options (${q.options.length})`);
         continue;
       }
       
-      // Check options uniqueness
-      const uniqueOptions = [...new Set(q.options.map((opt: string) => opt.trim().toLowerCase()))];
-      if (uniqueOptions.length < 4) {
-        console.log(`❌ Question ${i + 1} rejected: Duplicate options`);
+      if (!q.correctAnswer || typeof q.correctAnswer !== 'string') {
+        console.log(`❌ Question ${i + 1} rejected: Invalid correctAnswer field`);
         continue;
       }
       
-      // Check if correct answer exists in options
-      const correctAnswerExists = q.options.some((opt: string) => 
-        opt.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()
-      );
-      if (!correctAnswerExists) {
-        console.log(`❌ Question ${i + 1} rejected: Correct answer not in options`);
+      // Clean up options
+      const cleanOptions = q.options
+        .filter((opt: any) => opt && typeof opt === 'string')
+        .map((opt: string) => opt.trim())
+        .filter((opt: string) => opt.length > 0);
+      
+      if (cleanOptions.length < 2) {
+        console.log(`❌ Question ${i + 1} rejected: Not enough valid options after cleaning`);
         continue;
       }
       
-      console.log(`✅ Question ${i + 1} (${expectedCategory}) validated`);
+      // Ensure 4 options by adding generic ones if needed
+      while (cleanOptions.length < 4) {
+        cleanOptions.push(`Pilihan ${cleanOptions.length + 1}`);
+      }
+      
+      // Take only first 4 options
+      const finalOptions = cleanOptions.slice(0, 4);
+      
+      // Check if correct answer exists in options (case insensitive)
+      const correctAnswerLower = q.correctAnswer.trim().toLowerCase();
+      const optionsLower = finalOptions.map(opt => opt.toLowerCase());
+      
+      let finalCorrectAnswer = q.correctAnswer.trim();
+      if (!optionsLower.includes(correctAnswerLower)) {
+        // If correct answer not in options, use first option
+        finalCorrectAnswer = finalOptions[0];
+        console.log(`⚠️ Question ${i + 1}: Correct answer not found, using first option`);
+      }
+      
+      // Default category if not provided
+      const category = q.category || ['vocabulary', 'grammar', 'culture', 'practical', 'comprehension'][i % 5];
+      
+      console.log(`✅ Question ${i + 1} validated successfully`);
       
       validQuestions.push({
-        id: `${expectedCategory}_${uniqueId}_${i}`,
+        id: `ai_${uniqueId}_${i}`,
         type: 'multiple-choice',
         question: q.question.trim(),
-        options: q.options.map((opt: string) => opt.trim()),
-        correctAnswer: q.correctAnswer.trim(),
-        explanation: q.explanation?.trim() || 'Jawaban berdasarkan standar JLPT.',
+        options: finalOptions,
+        correctAnswer: finalCorrectAnswer,
+        explanation: (q.explanation && typeof q.explanation === 'string') 
+          ? q.explanation.trim() 
+          : 'Jawaban berdasarkan analisis materi JLPT.',
         points: 20,
-        category: expectedCategory
+        category: category
       });
+      
+      // Stop at 15 questions max to prevent excessive processing
+      if (validQuestions.length >= 15) break;
     }
     
+    console.log(`📊 Validation complete: ${validQuestions.length}/${rawQuestions.length} questions valid`);
     return validQuestions;
   };
 
@@ -570,26 +654,17 @@ HANYA RESPONSE JSON SAJA, JANGAN ADA TEKS LAIN!`;
             </div>
           )}
 
-          {/* Generate Buttons */}
-          <div className="text-center mb-6 space-y-3">
+          {/* Generate Button */}
+          <div className="text-center mb-6">
             <button
               onClick={generateAIQuiz}
               disabled={selectedTopic === 'custom' && !customTopic.trim()}
               className="flex items-center justify-center space-x-2 mx-auto px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105"
             >
               <Zap className="h-5 w-5" />
-              <span className="font-semibold">Generate AI Quiz</span>
+              <span className="font-semibold">Generate AI Quiz (10 Soal)</span>
             </button>
-            
-            <div className="text-sm text-gray-500">atau</div>
-            
-            <button
-              onClick={generateFallbackQuiz}
-              className="flex items-center justify-center space-x-2 mx-auto px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all"
-            >
-              <Target className="h-4 w-4" />
-              <span>Quiz Standar (Tanpa AI)</span>
-            </button>
+            <p className="text-sm text-gray-600 mt-2">Quiz akan dibuat otomatis oleh AI dengan 10 soal yang unik</p>
           </div>
 
           {/* Quiz History */}
@@ -623,11 +698,13 @@ HANYA RESPONSE JSON SAJA, JANGAN ADA TEKS LAIN!`;
               Fitur AI Quiz:
             </h4>
             <ul className="text-sm text-blue-700 space-y-1">
+              <li>• <strong>10 soal unik</strong> dibuat otomatis oleh AI untuk setiap quiz</li>
               <li>• 5 kategori soal berbeda: Vocabulary, Grammar, Culture, Practical, Comprehension</li>
               <li>• Sistem anti-duplikasi advanced dengan validasi ketat</li>
               <li>• Soal disesuaikan dengan level JLPT yang dipilih</li>
               <li>• Topik dapat disesuaikan atau menggunakan topik kustom</li>
               <li>• Analisis performa dan tracking progress</li>
+              <li>• <strong>Wajib menggunakan AI</strong> - tidak ada opsi quiz standar</li>
             </ul>
           </div>
 
@@ -662,8 +739,8 @@ HANYA RESPONSE JSON SAJA, JANGAN ADA TEKS LAIN!`;
               const settings = JSON.parse(localStorage.getItem('kotobaid-api-settings') || '{}');
               if (!settings.azureOpenAI?.enabled || !settings.azureOpenAI?.backendEndpoint || !settings.azureOpenAI?.apiKey) {
                 return (
-                  <div className="mt-3 p-2 bg-yellow-100 border border-yellow-300 rounded text-yellow-800 text-sm">
-                    ⚠️ Azure OpenAI belum dikonfigurasi. Gunakan "Quiz Standar" atau konfigurasi di Settings.
+                  <div className="mt-3 p-2 bg-red-100 border border-red-300 rounded text-red-800 text-sm">
+                    ❌ <strong>Azure OpenAI wajib dikonfigurasi!</strong> Quiz generator ini membutuhkan AI untuk membuat 10 soal unik. Silakan konfigurasi di Settings terlebih dahulu.
                   </div>
                 );
               }
