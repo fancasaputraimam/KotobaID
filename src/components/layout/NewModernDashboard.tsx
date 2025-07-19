@@ -48,6 +48,7 @@ import KanjiLearning from '../learning/KanjiLearning';
 import GrammarLearning from '../learning/GrammarLearning';
 import VocabularyLearning from '../learning/VocabularyLearning';
 import SentenceGenerator from '../ai/SentenceGenerator';
+import AIQuizGenerator from '../ai/AIQuizGenerator';
 import { firestoreService } from '../../services/firestoreService';
 import { UserProgress } from '../../types';
 import { azureOpenAI } from '../../services/azureOpenAI';
@@ -92,6 +93,7 @@ const NewModernDashboard: React.FC = () => {
         { id: 'audio', label: 'Audio', icon: Volume2, color: 'text-red-600', bgColor: 'bg-red-50' },
         { id: 'reading', label: 'Reading', icon: FileText, color: 'text-teal-600', bgColor: 'bg-teal-50' },
         { id: 'sentence-generator', label: 'AI Sentence Generator', icon: Wand2, color: 'text-purple-600', bgColor: 'bg-purple-50' },
+        { id: 'ai-quiz-generator', label: 'AI Quiz Generator', icon: Brain, color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
       ]
     },
     {
@@ -204,6 +206,8 @@ const NewModernDashboard: React.FC = () => {
         return <ReadingPractice />;
       case 'sentence-generator':
         return <SentenceGenerator />;
+      case 'ai-quiz-generator':
+        return <AIQuizGenerator />;
       case 'kanji':
         return <KanjiLearning />;
       case 'grammar':
