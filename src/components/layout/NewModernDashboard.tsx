@@ -39,13 +39,15 @@ import {
   Award,
   Sparkles,
   Coffee,
-  Flame
+  Flame,
+  Wand2
 } from 'lucide-react';
 
 // Import all components
 import KanjiLearning from '../learning/KanjiLearning';
 import GrammarLearning from '../learning/GrammarLearning';
 import VocabularyLearning from '../learning/VocabularyLearning';
+import SentenceGenerator from '../ai/SentenceGenerator';
 import { firestoreService } from '../../services/firestoreService';
 import { UserProgress } from '../../types';
 import { azureOpenAI } from '../../services/azureOpenAI';
@@ -89,6 +91,7 @@ const NewModernDashboard: React.FC = () => {
         { id: 'study-tools', label: 'Study Tools', icon: Search, color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
         { id: 'audio', label: 'Audio', icon: Volume2, color: 'text-red-600', bgColor: 'bg-red-50' },
         { id: 'reading', label: 'Reading', icon: FileText, color: 'text-teal-600', bgColor: 'bg-teal-50' },
+        { id: 'sentence-generator', label: 'AI Sentence Generator', icon: Wand2, color: 'text-purple-600', bgColor: 'bg-purple-50' },
       ]
     },
     {
@@ -199,6 +202,8 @@ const NewModernDashboard: React.FC = () => {
         return <ListeningPractice />;
       case 'reading':
         return <ReadingComprehension />;
+      case 'sentence-generator':
+        return <SentenceGenerator />;
       case 'kanji':
         return <KanjiLearning />;
       case 'grammar':

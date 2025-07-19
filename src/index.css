@@ -5,3 +5,8 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Japanese font family */
+.font-japanese {
+  font-family: 'Noto Sans JP', 'Hiragino Sans', 'ヒラギノ角ゴ ProN W3', 'Hiragino Kaku Gothic ProN', 'メイリオ', Meiryo, 'MS ゴシック', 'MS Gothic', sans-serif;
+}
