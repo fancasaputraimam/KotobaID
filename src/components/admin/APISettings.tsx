@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Key, Save, TestTube, Brain, AlertTriangle, ExternalLink, Copy, Eye, EyeOff } from 'lucide-react';
+import { Settings, Key, Save, TestTube, Brain, AlertTriangle, ExternalLink, Copy, Eye, EyeOff, Mic, Volume2 } from 'lucide-react';
 
 const APISettings: React.FC = () => {
   const [settings, setSettings] = useState({
@@ -15,15 +15,27 @@ const APISettings: React.FC = () => {
       baseUrl: 'https://kanjiapi.dev/v1',
       enabled: true
     },
-    audio: {
-      provider: 'google-tts',
-      enabled: true
-    },
     azureOpenAI: {
       backendEndpoint: 'https://jabal-md08zjyh-eastus2.cognitiveservices.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2025-01-01-preview',
       apiKey: '50Ge3WiF7fMmIuPQ6ssLY7HhFxiMhiMpkDuxLfQwCcOn2m5QLcWDJQQJ99BGACHYHv6XJ3w3AAAAACOGuXbA',
       model: 'gpt-4o',
       enabled: true
+    },
+    speechToText: {
+      provider: 'azure-stt',
+      endpoint: 'https://your-region.api.cognitive.microsoft.com/speechtotext/v3.0/transcriptions',
+      apiKey: '',
+      model: 'en-US',
+      region: 'eastus',
+      enabled: false
+    },
+    textToSpeech: {
+      provider: 'azure-tts',
+      endpoint: 'https://your-region.tts.speech.microsoft.com/cognitiveservices/v1',
+      apiKey: '',
+      voice: 'ja-JP-NanamiNeural',
+      region: 'eastus',
+      enabled: false
     }
   });
 
@@ -31,10 +43,14 @@ const APISettings: React.FC = () => {
     vertexAI: 'idle' | 'testing' | 'success' | 'error';
     kanjiAPI: 'idle' | 'testing' | 'success' | 'error';
     azureOpenAI: 'idle' | 'testing' | 'success' | 'error';
+    speechToText: 'idle' | 'testing' | 'success' | 'error';
+    textToSpeech: 'idle' | 'testing' | 'success' | 'error';
   }>({
     vertexAI: 'idle',
     kanjiAPI: 'idle',
-    azureOpenAI: 'idle'
+    azureOpenAI: 'idle',
+    speechToText: 'idle',
+    textToSpeech: 'idle'
   });
 
   const [showServiceAccountKey, setShowServiceAccountKey] = useState(false);
@@ -161,6 +177,71 @@ const APISettings: React.FC = () => {
     } catch (error) {
       setTestResults(prev => ({ ...prev, azureOpenAI: 'error' }));
       alert(`❌ Koneksi Azure OpenAI gagal!\nError: ${(error as Error).message}`);
+    }
+  };
+
+  const testSpeechToText = async () => {
+    setTestResults(prev => ({ ...prev, speechToText: 'testing' }));
+    try {
+      const endpoint = settings.speechToText.endpoint;
+      const apiKey = settings.speechToText.apiKey;
+      
+      // Test with a simple token endpoint
+      const tokenEndpoint = endpoint.replace('/speechtotext/v3.0/transcriptions', '/sts/v1.0/issuetoken');
+      
+      const response = await fetch(tokenEndpoint, {
+        method: 'POST',
+        headers: {
+          'Ocp-Apim-Subscription-Key': apiKey,
+        },
+      });
+      
+      if (response.ok) {
+        setTestResults(prev => ({ ...prev, speechToText: 'success' }));
+        alert('✅ Koneksi Speech-to-Text berhasil!');
+      } else {
+        setTestResults(prev => ({ ...prev, speechToText: 'error' }));
+        alert(`❌ Koneksi Speech-to-Text gagal!\nStatus: ${response.status}\n${await response.text()}`);
+      }
+    } catch (error) {
+      setTestResults(prev => ({ ...prev, speechToText: 'error' }));
+      alert(`❌ Koneksi Speech-to-Text gagal!\nError: ${(error as Error).message}`);
+    }
+  };
+
+  const testTextToSpeech = async () => {
+    setTestResults(prev => ({ ...prev, textToSpeech: 'testing' }));
+    try {
+      const endpoint = settings.textToSpeech.endpoint;
+      const apiKey = settings.textToSpeech.apiKey;
+      
+      // Test with a simple SSML request
+      const ssml = `<speak version='1.0' xml:lang='ja-JP'>
+        <voice xml:lang='ja-JP' xml:gender='Female' name='${settings.textToSpeech.voice}'>
+          テスト
+        </voice>
+      </speak>`;
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Ocp-Apim-Subscription-Key': apiKey,
+          'Content-Type': 'application/ssml+xml',
+          'X-Microsoft-OutputFormat': 'riff-24khz-16bit-mono-pcm',
+        },
+        body: ssml,
+      });
+      
+      if (response.ok) {
+        setTestResults(prev => ({ ...prev, textToSpeech: 'success' }));
+        alert('✅ Koneksi Text-to-Speech berhasil!');
+      } else {
+        setTestResults(prev => ({ ...prev, textToSpeech: 'error' }));
+        alert(`❌ Koneksi Text-to-Speech gagal!\nStatus: ${response.status}\n${await response.text()}`);
+      }
+    } catch (error) {
+      setTestResults(prev => ({ ...prev, textToSpeech: 'error' }));
+      alert(`❌ Koneksi Text-to-Speech gagal!\nError: ${(error as Error).message}`);
     }
   };
 
@@ -651,48 +732,356 @@ const APISettings: React.FC = () => {
           </div>
         </div>
 
-        {/* Audio Settings */}
+        {/* Speech-to-Text Settings */}
         <div className="bg-white border rounded-lg p-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <Settings className="h-6 w-6 text-purple-600" />
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Pengaturan Audio</h3>
-              <p className="text-sm text-gray-600">Konfigurasi untuk layanan audio</p>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <Mic className="h-6 w-6 text-red-600" />
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Speech-to-Text (STT)</h3>
+                <p className="text-sm text-gray-600">Konfigurasi untuk pengenalan suara</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className={`text-sm ${getStatusColor(testResults.speechToText)}`}>
+                {getStatusText(testResults.speechToText)}
+              </span>
+              <button
+                onClick={testSpeechToText}
+                disabled={testResults.speechToText === 'testing'}
+                className="flex items-center space-x-1 px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              >
+                <TestTube className="h-4 w-4" />
+                <span>Test</span>
+              </button>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Provider Audio
+                Provider STT
               </label>
               <select
-                value={settings.audio.provider}
+                value={settings.speechToText.provider}
                 onChange={(e) => setSettings(prev => ({
                   ...prev,
-                  audio: { ...prev.audio, provider: e.target.value }
+                  speechToText: { ...prev.speechToText, provider: e.target.value }
                 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
+                <option value="azure-stt">Azure Speech Services</option>
+                <option value="google-stt">Google Speech-to-Text</option>
+                <option value="aws-transcribe">Amazon Transcribe</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Endpoint STT
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={settings.speechToText.endpoint}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    speechToText: { ...prev.speechToText, endpoint: e.target.value }
+                  }))}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://your-region.api.cognitive.microsoft.com/..."
+                />
+                <button
+                  onClick={() => copyToClipboard(settings.speechToText.endpoint)}
+                  className="absolute right-2 top-2 p-1 text-gray-400 hover:text-gray-600"
+                >
+                  <Copy className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                API Key STT
+              </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  value={settings.speechToText.apiKey}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    speechToText: { ...prev.speechToText, apiKey: e.target.value }
+                  }))}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Masukkan API Key STT"
+                />
+                <button
+                  onClick={() => {
+                    const inputs = document.querySelectorAll('input[type="password"]');
+                    const sttInput = inputs[1] as HTMLInputElement; // Assuming this is the second password input
+                    if (sttInput.type === 'password') {
+                      sttInput.type = 'text';
+                    } else {
+                      sttInput.type = 'password';
+                    }
+                  }}
+                  className="absolute right-2 top-2 p-1 text-gray-400 hover:text-gray-600"
+                >
+                  <Eye className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Model/Language STT
+              </label>
+              <select
+                value={settings.speechToText.model}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  speechToText: { ...prev.speechToText, model: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="ja-JP">Japanese (Japan)</option>
+                <option value="en-US">English (US)</option>
+                <option value="id-ID">Indonesian</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Region STT
+              </label>
+              <select
+                value={settings.speechToText.region}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  speechToText: { ...prev.speechToText, region: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="eastus">East US</option>
+                <option value="westus2">West US 2</option>
+                <option value="eastasia">East Asia</option>
+                <option value="southeastasia">Southeast Asia</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Connection Status
+              </label>
+              <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg">
+                <div className={`w-3 h-3 rounded-full ${
+                  testResults.speechToText === 'success' ? 'bg-green-500' :
+                  testResults.speechToText === 'error' ? 'bg-red-500' :
+                  testResults.speechToText === 'testing' ? 'bg-yellow-500' :
+                  'bg-gray-400'
+                }`}></div>
+                <span className="text-sm text-gray-700">
+                  {getStatusText(testResults.speechToText)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={settings.speechToText.enabled}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  speechToText: { ...prev.speechToText, enabled: e.target.checked }
+                }))}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <span className="ml-2 text-sm text-gray-700">Aktifkan Speech-to-Text</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Text-to-Speech Settings */}
+        <div className="bg-white border rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <Volume2 className="h-6 w-6 text-green-600" />
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Text-to-Speech (TTS)</h3>
+                <p className="text-sm text-gray-600">Konfigurasi untuk sintesis suara</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className={`text-sm ${getStatusColor(testResults.textToSpeech)}`}>
+                {getStatusText(testResults.textToSpeech)}
+              </span>
+              <button
+                onClick={testTextToSpeech}
+                disabled={testResults.textToSpeech === 'testing'}
+                className="flex items-center space-x-1 px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              >
+                <TestTube className="h-4 w-4" />
+                <span>Test</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Provider TTS
+              </label>
+              <select
+                value={settings.textToSpeech.provider}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  textToSpeech: { ...prev.textToSpeech, provider: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="azure-tts">Azure Speech Services</option>
                 <option value="google-tts">Google Text-to-Speech</option>
-                <option value="azure-tts">Azure Text-to-Speech</option>
                 <option value="aws-polly">Amazon Polly</option>
               </select>
             </div>
 
-            <div className="flex items-center">
-              <label className="flex items-center">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Endpoint TTS
+              </label>
+              <div className="relative">
                 <input
-                  type="checkbox"
-                  checked={settings.audio.enabled}
+                  type="text"
+                  value={settings.textToSpeech.endpoint}
                   onChange={(e) => setSettings(prev => ({
                     ...prev,
-                    audio: { ...prev.audio, enabled: e.target.checked }
+                    textToSpeech: { ...prev.textToSpeech, endpoint: e.target.value }
                   }))}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://your-region.tts.speech.microsoft.com/..."
                 />
-                <span className="ml-2 text-sm text-gray-700">Aktifkan Audio</span>
+                <button
+                  onClick={() => copyToClipboard(settings.textToSpeech.endpoint)}
+                  className="absolute right-2 top-2 p-1 text-gray-400 hover:text-gray-600"
+                >
+                  <Copy className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                API Key TTS
               </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  value={settings.textToSpeech.apiKey}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    textToSpeech: { ...prev.textToSpeech, apiKey: e.target.value }
+                  }))}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Masukkan API Key TTS"
+                />
+                <button
+                  onClick={() => {
+                    const inputs = document.querySelectorAll('input[type="password"]');
+                    const ttsInput = inputs[2] as HTMLInputElement; // Assuming this is the third password input
+                    if (ttsInput.type === 'password') {
+                      ttsInput.type = 'text';
+                    } else {
+                      ttsInput.type = 'password';
+                    }
+                  }}
+                  className="absolute right-2 top-2 p-1 text-gray-400 hover:text-gray-600"
+                >
+                  <Eye className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Voice TTS
+              </label>
+              <select
+                value={settings.textToSpeech.voice}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  textToSpeech: { ...prev.textToSpeech, voice: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="ja-JP-NanamiNeural">Nanami (Japanese Female)</option>
+                <option value="ja-JP-KeitaNeural">Keita (Japanese Male)</option>
+                <option value="ja-JP-AoiNeural">Aoi (Japanese Female)</option>
+                <option value="ja-JP-DaichiNeural">Daichi (Japanese Male)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Region TTS
+              </label>
+              <select
+                value={settings.textToSpeech.region}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  textToSpeech: { ...prev.textToSpeech, region: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="eastus">East US</option>
+                <option value="westus2">West US 2</option>
+                <option value="eastasia">East Asia</option>
+                <option value="southeastasia">Southeast Asia</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Connection Status
+              </label>
+              <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg">
+                <div className={`w-3 h-3 rounded-full ${
+                  testResults.textToSpeech === 'success' ? 'bg-green-500' :
+                  testResults.textToSpeech === 'error' ? 'bg-red-500' :
+                  testResults.textToSpeech === 'testing' ? 'bg-yellow-500' :
+                  'bg-gray-400'
+                }`}></div>
+                <span className="text-sm text-gray-700">
+                  {getStatusText(testResults.textToSpeech)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={settings.textToSpeech.enabled}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  textToSpeech: { ...prev.textToSpeech, enabled: e.target.checked }
+                }))}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <span className="ml-2 text-sm text-gray-700">Aktifkan Text-to-Speech</span>
+            </label>
+          </div>
+
+          {/* TTS Configuration Tips */}
+          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <h4 className="font-medium text-green-800 mb-2">Tips Konfigurasi TTS:</h4>
+            <div className="text-sm text-green-700 space-y-1">
+              <p>• Pilih voice yang sesuai dengan bahasa target pembelajaran</p>
+              <p>• Gunakan Neural voices untuk kualitas suara yang lebih natural</p>
+              <p>• Region harus sesuai dengan lokasi resource Azure Speech Services</p>
+              <p>• Test koneksi untuk memastikan konfigurasi benar</p>
             </div>
           </div>
         </div>

@@ -25,9 +25,41 @@ export interface PronunciationResult {
 }
 
 class AzureAudioService {
-  private ttsEndpoint = 'https://jabal-md08zjyh-eastus2.cognitiveservices.azure.com/openai/deployments/gpt-4o-mini-tts/audio/speech?api-version=2025-03-01-preview';
-  private sttEndpoint = 'https://jabal-md08zjyh-eastus2.cognitiveservices.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2025-03-01-preview';
-  private apiKey = '50Ge3WiF7fMmIuPQ6ssLY7HhFxiMhiMpkDuxLfQwCcOn2m5QLcWDJQQJ99BGACHYHv6XJ3w3AAAAACOGuXbA';
+  private getDevPanelSettings() {
+    try {
+      const savedSettings = localStorage.getItem('kotobaid-api-settings');
+      if (savedSettings) {
+        return JSON.parse(savedSettings);
+      }
+    } catch (error) {
+      console.error('Error loading dev panel settings:', error);
+    }
+    return null;
+  }
+
+  private getTTSConfig() {
+    const settings = this.getDevPanelSettings();
+    if (settings?.textToSpeech?.enabled && settings.textToSpeech.endpoint && settings.textToSpeech.apiKey) {
+      return {
+        endpoint: settings.textToSpeech.endpoint,
+        apiKey: settings.textToSpeech.apiKey,
+        voice: settings.textToSpeech.voice || 'ja-JP-NanamiNeural'
+      };
+    }
+    throw new Error('TTS not configured in dev panel. Please configure Text-to-Speech settings in API Settings.');
+  }
+
+  private getSTTConfig() {
+    const settings = this.getDevPanelSettings();
+    if (settings?.speechToText?.enabled && settings.speechToText.endpoint && settings.speechToText.apiKey) {
+      return {
+        endpoint: settings.speechToText.endpoint,
+        apiKey: settings.speechToText.apiKey,
+        model: settings.speechToText.model || 'ja-JP'
+      };
+    }
+    throw new Error('STT not configured in dev panel. Please configure Speech-to-Text settings in API Settings.');
+  }
   
   // Japanese voices available
   private japaneseVoices = [
@@ -45,23 +77,25 @@ class AzureAudioService {
   // Text-to-Speech: Convert Japanese text to audio
   async textToSpeech(request: TTSRequest): Promise<AudioResponse> {
     try {
-      const voice = request.voice || 'ja-JP-NanamiNeural';
+      const config = this.getTTSConfig();
+      const voice = request.voice || config.voice;
       const speed = request.speed || 1.0;
       const format = request.format || 'mp3';
 
-      const response = await fetch(this.ttsEndpoint, {
+      const response = await fetch(config.endpoint, {
         method: 'POST',
         headers: {
-          'api-key': this.apiKey,
-          'Content-Type': 'application/json'
+          'Ocp-Apim-Subscription-Key': config.apiKey,
+          'Content-Type': 'application/ssml+xml',
+          'X-Microsoft-OutputFormat': 'riff-24khz-16bit-mono-pcm',
         },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini-tts',
-          input: request.text,
-          voice: voice,
-          response_format: format,
-          speed: speed
-        })
+        body: `<speak version='1.0' xml:lang='ja-JP'>
+          <voice xml:lang='ja-JP' xml:gender='Female' name='${voice}'>
+            <prosody rate='${speed}'>
+              ${request.text}
+            </prosody>
+          </voice>
+        </speak>`
       });
 
       if (!response.ok) {
@@ -84,16 +118,15 @@ class AzureAudioService {
   // Speech-to-Text: Convert audio to Japanese text
   async speechToText(request: STTRequest): Promise<AudioResponse> {
     try {
+      const config = this.getSTTConfig();
       const formData = new FormData();
-      formData.append('file', request.audioBlob, 'audio.wav');
-      formData.append('model', 'gpt-4o-transcribe');
-      formData.append('language', request.language || 'ja');
-      formData.append('response_format', 'json');
+      formData.append('audio', request.audioBlob, 'audio.wav');
+      formData.append('language', request.language || config.model);
 
-      const response = await fetch(this.sttEndpoint, {
+      const response = await fetch(config.endpoint, {
         method: 'POST',
         headers: {
-          'api-key': this.apiKey
+          'Ocp-Apim-Subscription-Key': config.apiKey
         },
         body: formData
       });
@@ -112,9 +145,14 @@ class AzureAudioService {
     }
   }
 
-  // Check pronunciation using GPT-4o
+  // Check pronunciation using configured Azure OpenAI
   async checkPronunciation(userText: string, correctText: string): Promise<PronunciationResult> {
     try {
+      const settings = this.getDevPanelSettings();
+      if (!settings?.azureOpenAI?.enabled || !settings.azureOpenAI.backendEndpoint || !settings.azureOpenAI.apiKey) {
+        throw new Error('Azure OpenAI not configured in dev panel for pronunciation checking.');
+      }
+
       const prompt = `Kamu adalah guru bahasa Jepang.
 Bandingkan dua teks berikut:
 - Jawaban benar: ${correctText}
@@ -125,10 +163,10 @@ Jika salah → jawab hanya:
 "❌ Salah. Perbaiki di suku kata [SEBUT SUKU KATA YANG SALAH].
 Contoh yang benar: ${correctText}"`;
 
-      const response = await fetch('https://jabal-md08zjyh-eastus2.cognitiveservices.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2024-02-15-preview', {
+      const response = await fetch(settings.azureOpenAI.backendEndpoint, {
         method: 'POST',
         headers: {
-          'api-key': this.apiKey,
+          'api-key': settings.azureOpenAI.apiKey,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -178,10 +216,15 @@ Skor: [0-100]
 Kata salah: [kata1, kata2] (atau "Tidak ada" jika semua benar)
 Feedback: [penjelasan singkat]`;
 
-      const response = await fetch('https://jabal-md08zjyh-eastus2.cognitiveservices.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2024-02-15-preview', {
+      const settings = this.getDevPanelSettings();
+      if (!settings?.azureOpenAI?.enabled || !settings.azureOpenAI.backendEndpoint || !settings.azureOpenAI.apiKey) {
+        throw new Error('Azure OpenAI not configured in dev panel.');
+      }
+
+      const response = await fetch(settings.azureOpenAI.backendEndpoint, {
         method: 'POST',
         headers: {
-          'api-key': this.apiKey,
+          'api-key': settings.azureOpenAI.apiKey,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -230,10 +273,15 @@ Jawab hanya:
 ✅ Benar
 ❌ Salah. Jawaban benar: ${correctTranslation}`;
 
-      const response = await fetch('https://jabal-md08zjyh-eastus2.cognitiveservices.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2024-02-15-preview', {
+      const settings = this.getDevPanelSettings();
+      if (!settings?.azureOpenAI?.enabled || !settings.azureOpenAI.backendEndpoint || !settings.azureOpenAI.apiKey) {
+        throw new Error('Azure OpenAI not configured in dev panel.');
+      }
+
+      const response = await fetch(settings.azureOpenAI.backendEndpoint, {
         method: 'POST',
         headers: {
-          'api-key': this.apiKey,
+          'api-key': settings.azureOpenAI.apiKey,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
