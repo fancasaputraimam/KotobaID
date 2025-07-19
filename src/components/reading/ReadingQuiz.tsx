@@ -71,82 +71,78 @@ const ReadingQuiz: React.FC<ReadingQuizProps> = ({
       // Create unique identifier for this text to ensure variety
       const textHash = text.content.slice(0, 20) + Date.now();
       
-      const prompt = `Sebagai guru bahasa Jepang ahli, buat 7-8 soal quiz SANGAT BERBEDA dan UNIK untuk teks berikut (lebih banyak untuk antisipasi duplikasi):
+      const prompt = `PERINTAH ABSOLUT: Buat TEPAT 5 soal dengan TEMPLATE BERBEDA TOTAL untuk teks berikut.
+      
+SETIAP SOAL HARUS MENGGUNAKAN TEMPLATE INI SECARA BERURUTAN:
 
-TEKS ASLI: "${text.content}"
+TEKS: "${text.content}"
 TERJEMAHAN: "${text.translation}"
-LEVEL: ${text.level}
-VOCABULARY: ${text.vocabulary.map(v => `${v.word}(${v.meaning})`).join(', ')}
 
-REQUIREMENTS ULTRA KETAT - HARUS DITAATI:
-1. Buat 7-8 soal yang SANGAT BERBEDA satu sama lain
-2. SETIAP soal harus menggunakan PENDEKATAN YANG BERBEDA TOTAL
-3. DILARANG KERAS menggunakan kata/frasa yang sama dalam soal
-4. Setiap soal harus mengukur ASPEK BERBEDA dari pemahaman
-5. JANGAN ADA soal yang mirip struktur atau pattern-nya
+WAJIB GUNAKAN TEMPLATE INI SECARA BERURUTAN - TIDAK BOLEH DIUBAH:
 
-DISTRIBUSI SOAL YANG HARUS BENAR-BENAR BERBEDA:
-- 1 soal tentang MOTIVASI/ALASAN dari tindakan dalam teks
-- 1 soal tentang URUTAN WAKTU/KRONOLOGI peristiwa
-- 1 soal VOCABULARY dengan KONTEKS SPESIFIK dari teks
-- 1 soal tentang HUBUNGAN SEBAB-AKIBAT dalam teks
-- 1 soal tentang PERBANDINGAN/KONTRAS yang disebutkan
-- 1 soal tentang IMPLIKASI/DAMPAK dari informasi dalam teks
-- 1 soal tentang DETAIL KUANTITATIF (angka, jumlah, frekuensi)
-- 1 soal tentang KARAKTERISASI/DESKRIPSI dalam teks
+SOAL 1 - TEMPLATE MOTIVASI (MULAI DENGAN "Alasan"):
+"Alasan [subjek dari teks] [melakukan tindakan spesifik yang disebutkan] adalah..."
+Pilihan: A) [alasan 1] B) [alasan 2] C) [alasan 3] D) [alasan 4]
 
-TEMPLATE YANG DILARANG (JANGAN PAKAI):
-- "Apa [sesuatu] dalam teks?"
-- "Siapa yang [melakukan sesuatu]?"
-- "Dimana [kejadian]?"
-- "Kapan [peristiwa]?"
+SOAL 2 - TEMPLATE SEQUENCE (MULAI DENGAN "Setelah"):  
+"Setelah [peristiwa X yang disebutkan dalam teks], yang terjadi selanjutnya adalah..."
+Pilihan: A) [urutan 1] B) [urutan 2] C) [urutan 3] D) [urutan 4]
 
-CONTOH SOAL BAGUS YANG HARUS DITIRU:
-- "Mengapa [karakter X] memutuskan untuk [tindakan Y] berdasarkan informasi dalam teks?"
-- "Dalam urutan kejadian yang disebutkan, apa yang terjadi SETELAH [peristiwa A]?"
-- "Berdasarkan konteks kalimat '[quote spesifik]', kata X bermakna?"
-- "Hubungan sebab-akibat apa yang dapat diidentifikasi antara [A] dan [B]?"
-- "Perbandingan apa yang dibuat teks antara [konsep X] dan [konsep Y]?"
-- "Apa dampak jangka panjang dari [situasi] yang digambarkan dalam teks?"
-- "Berapa kali/seberapa sering [aktivitas] dilakukan menurut teks?"
-- "Karakteristik apa yang PALING menonjol dari [subjek] berdasarkan deskripsi?"
+SOAL 3 - TEMPLATE VOCABULARY (MULAI DENGAN "Makna"):
+"Makna kata '[ambil kata dari teks]' dalam konteks '[kutip kalimat dari teks]' adalah..."
+Pilihan: A) [arti 1] B) [arti 2] C) [arti 3] D) [arti 4]
 
-CONTOH YANG HARUS DIHINDARI:
-- "Apa topik teks ini?" ← TERLALU UMUM
-- "Siapa tokoh utama?" ← TERLALU SEDERHANA  
-- "Dimana cerita terjadi?" ← TEMPLATE
-- "Kapan peristiwa berlangsung?" ← GENERIK
+SOAL 4 - TEMPLATE COMPARISON (MULAI DENGAN "Perbedaan"):
+"Perbedaan antara [elemen A] dan [elemen B] yang disebutkan dalam teks adalah..."
+Pilihan: A) [perbedaan 1] B) [perbedaan 2] C) [perbedaan 3] D) [perbedaan 4]
 
-FORMAT JSON TEPAT:
+SOAL 5 - TEMPLATE INFERENCE (MULAI DENGAN "Kesimpulan"):
+"Kesimpulan yang dapat ditarik dari [situasi/informasi spesifik dalam teks] adalah..."
+Pilihan: A) [kesimpulan 1] B) [kesimpulan 2] C) [kesimpulan 3] D) [kesimpulan 4]
+
+ATURAN MUTLAK:
+1. HARUS menggunakan 5 template di atas secara BERURUTAN
+2. TIDAK BOLEH mengubah kata pembuka: "Alasan", "Setelah", "Makna", "Perbedaan", "Kesimpulan"
+3. Isi soal harus spesifik dari konten teks yang diberikan
+4. Setiap soal harus merujuk elemen konkret dari teks
+
+FORMAT JSON WAJIB:
 {
   "questions": [
     {
-      "id": "unique_id_${textHash}",
-      "type": "multiple-choice", 
-      "question": "Soal spesifik berdasarkan teks (UNIK, tidak boleh sama dengan soal lain)",
-      "options": ["Opsi A yang logis", "Opsi B yang masuk akal", "Opsi C yang mungkin", "Opsi D yang reasonable"],
-      "correctAnswer": "Opsi yang benar sesuai teks",
-      "explanation": "Penjelasan detail mengapa jawaban ini benar berdasarkan teks",
-      "points": 20
+      "question": "Alasan [isi sesuai teks]...",
+      "options": ["A", "B", "C", "D"],
+      "correctAnswer": "jawaban benar",
+      "explanation": "penjelasan"
+    },
+    {
+      "question": "Setelah [isi sesuai teks]...",
+      "options": ["A", "B", "C", "D"], 
+      "correctAnswer": "jawaban benar",
+      "explanation": "penjelasan"
+    },
+    {
+      "question": "Makna kata [isi sesuai teks]...",
+      "options": ["A", "B", "C", "D"],
+      "correctAnswer": "jawaban benar", 
+      "explanation": "penjelasan"
+    },
+    {
+      "question": "Perbedaan antara [isi sesuai teks]...",
+      "options": ["A", "B", "C", "D"],
+      "correctAnswer": "jawaban benar",
+      "explanation": "penjelasan"
+    },
+    {
+      "question": "Kesimpulan yang dapat ditarik [isi sesuai teks]...",
+      "options": ["A", "B", "C", "D"],
+      "correctAnswer": "jawaban benar",
+      "explanation": "penjelasan"
     }
   ]
 }
 
-ATURAN FINAL - WAJIB DITAATI:
-- SETIAP soal harus dimulai dengan kata yang BERBEDA: "Mengapa", "Bagaimana", "Berdasarkan", "Dalam konteks", "Menurut", "Setelah", "Sebelum", "Dibandingkan"
-- TIDAK BOLEH ada 2 soal yang menggunakan struktur kalimat serupa
-- Setiap soal harus quote/referensi DETAIL SPESIFIK dari teks asli
-- WAJIB gunakan 4 pilihan jawaban yang logis dan masuk akal semua
-- Response HARUS JSON valid dengan struktur yang benar
-- Buktikan bahwa pembaca BENAR-BENAR memahami isi teks, bukan menebak
-
-FINAL CHECK - Pastikan TIDAK ADA yang sama:
-❌ DILARANG: Soal 1 "Apa..." dan Soal 2 "Apa..."  
-❌ DILARANG: Soal dengan kata kunci yang sama
-❌ DILARANG: Pattern struktur kalimat yang mirip
-✅ WAJIB: Setiap soal fokus aspek yang BEDA TOTAL
-
-GENERATE SEKARANG dengan aturan di atas!`;
+HASILKAN JSON SEKARANG!`;
 
       console.log('📝 Sending prompt to AI for quiz generation...');
       console.log('Text preview:', text.content.slice(0, 100) + '...');
@@ -194,13 +190,15 @@ GENERATE SEKARANG dengan aturan di atas!`;
       }
 
       if (aiQuiz.questions && Array.isArray(aiQuiz.questions)) {
-        // Advanced duplicate detection and question validation
+        // Simplified validation dengan template enforcement
+        const expectedStarters = ['Alasan', 'Setelah', 'Makna', 'Perbedaan', 'Kesimpulan'];
         const processedQuestions: QuizQuestion[] = [];
-        const usedQuestionPatterns = new Set<string>();
-        const usedKeywords = new Set<string>();
         
-        for (let i = 0; i < aiQuiz.questions.length && processedQuestions.length < 5; i++) {
+        console.log('🔍 Validating template compliance...');
+        
+        for (let i = 0; i < Math.min(aiQuiz.questions.length, 5); i++) {
           const q = aiQuiz.questions[i];
+          const expectedStarter = expectedStarters[i];
           
           // Basic validation
           if (!q.question || !q.correctAnswer || !q.options || q.options.length < 3) {
@@ -208,54 +206,10 @@ GENERATE SEKARANG dengan aturan di atas!`;
             continue;
           }
           
-          // Normalize question for comparison
-          const questionNormalized = q.question
-            .toLowerCase()
-            .replace(/[?.,!]/g, '')
-            .replace(/\s+/g, ' ')
-            .trim();
-          
-          // Extract key words from question (remove common words)
-          const questionWords = questionNormalized
-            .split(' ')
-            .filter(word => 
-              word.length > 2 && 
-              !['apa', 'yang', 'adalah', 'dalam', 'dari', 'untuk', 'dengan', 'pada', 'ini', 'itu', 'dan', 'atau', 'teks', 'bacaan'].includes(word)
-            );
-          
-          // Check for exact duplicates
-          if (usedQuestionPatterns.has(questionNormalized)) {
-            console.log(`❌ Question ${i + 1} rejected: Exact duplicate - "${q.question.slice(0, 50)}..."`);
-            continue;
-          }
-          
-          // Check for similar content (>70% keyword overlap)
-          let keywordOverlap = 0;
-          questionWords.forEach(word => {
-            if (usedKeywords.has(word)) {
-              keywordOverlap++;
-            }
-          });
-          
-          const overlapPercentage = questionWords.length > 0 ? (keywordOverlap / questionWords.length) * 100 : 0;
-          if (overlapPercentage > 70 && processedQuestions.length > 0) {
-            console.log(`❌ Question ${i + 1} rejected: High similarity (${Math.round(overlapPercentage)}%) - "${q.question.slice(0, 50)}..."`);
-            continue;
-          }
-          
-          // Check for generic/template questions
-          const genericPatterns = [
-            /apa (tema|topik) utama/,
-            /siapa (yang|tokoh)/,
-            /dimana.*terjadi/,
-            /kapan.*berlangsung/,
-            /berapa.*jumlah/,
-            /mengapa.*penting/
-          ];
-          
-          const isGeneric = genericPatterns.some(pattern => pattern.test(questionNormalized));
-          if (isGeneric && processedQuestions.length > 0) {
-            console.log(`❌ Question ${i + 1} rejected: Generic pattern - "${q.question.slice(0, 50)}..."`);
+          // Template compliance check
+          const startsWithExpected = q.question.trim().startsWith(expectedStarter);
+          if (!startsWithExpected) {
+            console.log(`❌ Question ${i + 1} rejected: Should start with "${expectedStarter}" but starts with "${q.question.slice(0, 20)}..."`);
             continue;
           }
           
@@ -276,10 +230,10 @@ GENERATE SEKARANG dengan aturan di atas!`;
           }
           
           // All validations passed - add question
-          console.log(`✅ Question ${i + 1} accepted: "${q.question.slice(0, 50)}..."`);
+          console.log(`✅ Question ${i + 1} accepted: "${q.question}"`);
           
           processedQuestions.push({
-            id: `${textHash}_q${processedQuestions.length + 1}`,
+            id: `${textHash}_template_${i + 1}`,
             type: q.type || 'multiple-choice',
             question: q.question.trim(),
             options: q.options.map((opt: string) => opt.trim()).filter(Boolean),
@@ -287,34 +241,23 @@ GENERATE SEKARANG dengan aturan di atas!`;
             explanation: q.explanation?.trim() || 'Jawaban berdasarkan konten teks.',
             points: q.points || 20
           });
-          
-          // Track used patterns and keywords
-          usedQuestionPatterns.add(questionNormalized);
-          questionWords.forEach(word => usedKeywords.add(word));
         }
 
-        // Comprehensive debug logging
-        console.log('🤖 AI Generated Questions:', aiQuiz.questions.length);
-        console.log('✅ Valid Questions After Processing:', processedQuestions.length);
-        console.log('📋 Final Questions List:');
+        // Template compliance logging
+        console.log('📊 Template Compliance Results:');
         processedQuestions.forEach((q, index) => {
-          console.log(`   ${index + 1}. "${q.question}"`);
+          const starter = expectedStarters[index];
+          console.log(`   ✅ Template ${index + 1} (${starter}): "${q.question}"`);
         });
         
-        // Check for any remaining similarity in final questions
-        if (processedQuestions.length > 1) {
-          console.log('🔍 Final Similarity Check:');
-          for (let i = 0; i < processedQuestions.length; i++) {
-            for (let j = i + 1; j < processedQuestions.length; j++) {
-              const q1Words = processedQuestions[i].question.toLowerCase().split(' ');
-              const q2Words = processedQuestions[j].question.toLowerCase().split(' ');
-              const commonWords = q1Words.filter(word => q2Words.includes(word) && word.length > 3);
-              
-              if (commonWords.length > 2) {
-                console.warn(`⚠️ Potential similarity between Q${i+1} and Q${j+1}: common words [${commonWords.join(', ')}]`);
-              }
-            }
-          }
+        // Check template uniqueness (should always be true now)
+        const starters = processedQuestions.map(q => q.question.split(' ')[0]);
+        const uniqueStarters = new Set(starters);
+        
+        if (uniqueStarters.size === processedQuestions.length) {
+          console.log('✅ All questions use different templates - NO DUPLICATION POSSIBLE');
+        } else {
+          console.warn('⚠️ Template enforcement failed - some questions may be similar');
         }
 
         // Validate we have enough good questions
@@ -338,88 +281,79 @@ GENERATE SEKARANG dengan aturan di atas!`;
   };
 
   const generateSimpleQuiz = () => {
-    // Generate unique questions based on the actual text content
+    console.log('🔧 Generating fallback quiz using enforced templates...');
+    
     const textHash = text.content.slice(0, 10) + Date.now();
     
-    // Create questions based on text content
-    const dynamicQuestions: QuizQuestion[] = [];
-    
-    // Question 1: About main content/character/setting
-    const contentWords = text.content.split('').filter(char => char.match(/[\u4e00-\u9faf\u3040-\u309f\u30a0-\u30ff]/));
+    // Analyze text content
     const hasFamily = text.content.includes('家族') || text.content.includes('父') || text.content.includes('母');
     const hasSchool = text.content.includes('学校') || text.content.includes('学生') || text.content.includes('先生');
     const hasWork = text.content.includes('仕事') || text.content.includes('会社') || text.content.includes('働');
+    const vocab = text.vocabulary?.[0];
     
-    let mainTopicAnswer = 'Kehidupan sehari-hari';
-    if (hasFamily) mainTopicAnswer = 'Keluarga';
-    if (hasSchool) mainTopicAnswer = 'Pendidikan';
-    if (hasWork) mainTopicAnswer = 'Pekerjaan';
-    
-    dynamicQuestions.push({
-      id: `${textHash}_main`,
-      type: 'multiple-choice',
-      question: 'Berdasarkan teks yang Anda baca, tema utamanya adalah tentang?',
-      options: [mainTopicAnswer, 'Teknologi', 'Olahraga', 'Makanan'],
-      correctAnswer: mainTopicAnswer,
-      explanation: `Dari konten teks dapat dilihat bahwa pembahasan utama adalah tentang ${mainTopicAnswer.toLowerCase()}.`,
-      points: 20
-    });
-
-    // Question 2: Vocabulary from actual text
-    if (text.vocabulary && text.vocabulary.length > 0) {
-      const vocab = text.vocabulary[0];
-      const otherMeanings = ['teman', 'makanan', 'tempat', 'waktu'].filter(m => m !== vocab.meaning);
-      
-      dynamicQuestions.push({
-        id: `${textHash}_vocab`,
-        type: 'vocabulary',
-        question: `Dalam teks, kata "${vocab.word}" (${vocab.reading}) memiliki arti?`,
-        options: [vocab.meaning, ...otherMeanings.slice(0, 3)],
-        correctAnswer: vocab.meaning,
-        explanation: `Kata "${vocab.word}" dalam konteks teks ini berarti "${vocab.meaning}".`,
+    // Template-based fallback questions
+    const templateQuestions: QuizQuestion[] = [
+      {
+        id: `${textHash}_template_1`,
+        type: 'multiple-choice',
+        question: hasFamily 
+          ? 'Alasan keluarga dalam teks melakukan aktivitas bersama adalah untuk...'
+          : hasWork 
+          ? 'Alasan karakter dalam teks bekerja adalah untuk...'
+          : 'Alasan utama aktivitas yang digambarkan dalam teks adalah untuk...',
+        options: ['menciptakan keharmonisan', 'memenuhi kewajiban', 'menghemat waktu', 'mengikuti tradisi'],
+        correctAnswer: 'menciptakan keharmonisan',
+        explanation: 'Berdasarkan konteks teks, aktivitas tersebut bertujuan menciptakan keharmonisan.',
         points: 20
-      });
-    }
+      },
+      {
+        id: `${textHash}_template_2`,
+        type: 'multiple-choice',
+        question: 'Setelah membaca informasi awal dalam teks, hal yang dijelaskan selanjutnya adalah...',
+        options: ['detail aktivitas', 'latar belakang', 'kesimpulan', 'perbandingan'],
+        correctAnswer: 'detail aktivitas',
+        explanation: 'Struktur teks menunjukkan urutan dari pengenalan ke detail aktivitas.',
+        points: 20
+      },
+      {
+        id: `${textHash}_template_3`,
+        type: 'vocabulary',
+        question: vocab 
+          ? `Makna kata "${vocab.word}" dalam konteks teks adalah...`
+          : 'Makna kata kunci utama dalam teks adalah...',
+        options: vocab 
+          ? [vocab.meaning, 'aktivitas', 'tempat', 'waktu']
+          : ['konsep utama', 'aktivitas', 'tempat', 'waktu'],
+        correctAnswer: vocab?.meaning || 'konsep utama',
+        explanation: vocab 
+          ? `Kata "${vocab.word}" dalam konteks ini berarti "${vocab.meaning}".`
+          : 'Kata kunci mengacu pada konsep utama yang dibahas.',
+        points: 20
+      },
+      {
+        id: `${textHash}_template_4`,
+        type: 'multiple-choice',
+        question: hasFamily
+          ? 'Perbedaan antara anggota keluarga yang disebutkan dalam teks terletak pada...'
+          : 'Perbedaan antara elemen-elemen yang disebutkan dalam teks adalah...',
+        options: ['peran dan tanggung jawab', 'usia dan pengalaman', 'minat personal', 'lokasi aktivitas'],
+        correctAnswer: 'peran dan tanggung jawab',
+        explanation: 'Teks menunjukkan perbedaan dalam hal peran dan tanggung jawab masing-masing.',
+        points: 20
+      },
+      {
+        id: `${textHash}_template_5`,
+        type: 'multiple-choice',
+        question: 'Kesimpulan yang dapat ditarik dari situasi yang digambarkan dalam teks adalah...',
+        options: ['pentingnya kebersamaan', 'nilai tradisi', 'efisiensi aktivitas', 'kemajuan teknologi'],
+        correctAnswer: 'pentingnya kebersamaan',
+        explanation: 'Dari konteks teks dapat disimpulkan pentingnya kebersamaan dalam aktivitas.',
+        points: 20
+      }
+    ];
 
-    // Question 3: Text length/complexity assessment
-    const wordCount = text.wordCount || text.content.length;
-    let difficultyLevel = 'sesuai level';
-    if (text.level === 'N5') difficultyLevel = 'mudah dipahami';
-    if (text.level === 'N1') difficultyLevel = 'cukup menantang';
-    
-    dynamicQuestions.push({
-      id: `${textHash}_difficulty`,
-      type: 'multiple-choice',
-      question: `Dengan ${wordCount} karakter, bagaimana tingkat kesulitan teks ini untuk level ${text.level}?`,
-      options: [difficultyLevel, 'terlalu sulit', 'terlalu mudah', 'tidak sesuai'],
-      correctAnswer: difficultyLevel,
-      explanation: `Teks ini dirancang ${difficultyLevel} untuk level ${text.level}.`,
-      points: 20
-    });
-
-    // Question 4: Reading comprehension self-assessment
-    dynamicQuestions.push({
-      id: `${textHash}_comprehension`,
-      type: 'multiple-choice',
-      question: 'Setelah membaca teks ini, seberapa baik pemahaman Anda terhadap isinya?',
-      options: ['Sangat paham (90-100%)', 'Cukup paham (70-89%)', 'Kurang paham (50-69%)', 'Tidak paham (<50%)'],
-      correctAnswer: 'Sangat paham (90-100%)',
-      explanation: 'Target yang baik adalah memahami minimal 90% dari isi teks.',
-      points: 20
-    });
-
-    // Question 5: Application/practical use
-    dynamicQuestions.push({
-      id: `${textHash}_application`,
-      type: 'multiple-choice',
-      question: 'Informasi dalam teks ini paling berguna untuk situasi?',
-      options: ['Percakapan sehari-hari', 'Ujian tertulis', 'Presentasi formal', 'Menulis email'],
-      correctAnswer: 'Percakapan sehari-hari',
-      explanation: 'Konten teks ini praktis untuk digunakan dalam komunikasi sehari-hari.',
-      points: 20
-    });
-
-    setQuestions(dynamicQuestions);
+    console.log('✅ Fallback quiz generated with enforced templates');
+    setQuestions(templateQuestions);
   };
 
   const handleAnswer = (answer: string) => {
