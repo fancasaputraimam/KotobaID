@@ -57,7 +57,7 @@ import ExampleAIPage from '../learning/ExampleAIPage';
 import JLPTAIPage from '../learning/JLPTAIPage';
 import KanjiSearchPage from '../learning/KanjiSearchPage';
 import ListeningPractice from '../audio/ListeningPractice';
-import ReadingComprehension from '../reading/ReadingComprehension';
+import ReadingPractice from '../reading/ReadingPractice';
 import StudyTools from '../studyTools/StudyTools';
 import Settings from '../settings/Settings';
 import UserProfile from '../profile/UserProfile';
@@ -201,7 +201,7 @@ const NewModernDashboard: React.FC = () => {
       case 'audio':
         return <ListeningPractice />;
       case 'reading':
-        return <ReadingComprehension />;
+        return <ReadingPractice />;
       case 'sentence-generator':
         return <SentenceGenerator />;
       case 'kanji':
