@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { azureAudioService } from '../../services/azureAudioService';
 import ReadingQuizNew from './ReadingQuizNew';
+import ReadingQuizAI from './ReadingQuizAI';
 
 interface ReadingText {
   id: string;
@@ -62,6 +63,7 @@ const ReadingPractice: React.FC = () => {
   const [isReading, setIsReading] = useState(false);
   const [readingStats, setReadingStats] = useState<ReadingStats | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
+  const [useAIQuiz, setUseAIQuiz] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hoverWord, setHoverWord] = useState<HoverWord | null>(null);
   const [highlightedWords, setHighlightedWords] = useState<Set<string>>(new Set());
@@ -451,6 +453,18 @@ Pastikan grammar dan vocabulary akurat sesuai level ${selectedLevel}.`;
               <Volume2 className={`h-4 w-4 ${isPlaying ? 'animate-pulse' : ''}`} />
               <span>Play Audio</span>
             </button>
+
+            <button
+              onClick={() => setUseAIQuiz(!useAIQuiz)}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                useAIQuiz 
+                  ? 'bg-purple-600 text-white hover:bg-purple-700' 
+                  : 'bg-gray-600 text-white hover:bg-gray-700'
+              }`}
+            >
+              <Brain className="h-4 w-4" />
+              <span>{useAIQuiz ? 'AI Quiz' : 'Standard Quiz'}</span>
+            </button>
           </div>
 
           <div className="flex items-center space-x-4">
@@ -632,6 +646,7 @@ Pastikan grammar dan vocabulary akurat sesuai level ${selectedLevel}.`;
               <li>• Hover di atas kata untuk melihat arti (hover dictionary)</li>
               <li>• Klik kata untuk highlight dan bookmark</li>
               <li>• Gunakan audio untuk mendengar pronunciation</li>
+              <li>• Toggle "AI Quiz" untuk menggunakan soal yang dibuat AI atau soal standar</li>
               <li>• Klik "Selesai" untuk mengerjakan quiz pemahaman</li>
             </ul>
           </div>
@@ -640,12 +655,21 @@ Pastikan grammar dan vocabulary akurat sesuai level ${selectedLevel}.`;
 
       {/* Reading Quiz */}
       {showQuiz && currentText && readingStats && (
-        <ReadingQuizNew
-          text={currentText}
-          readingStats={readingStats}
-          onComplete={handleQuizComplete}
-          onRetry={handleQuizRetry}
-        />
+        useAIQuiz ? (
+          <ReadingQuizAI
+            text={currentText}
+            readingStats={readingStats}
+            onComplete={handleQuizComplete}
+            onRetry={handleQuizRetry}
+          />
+        ) : (
+          <ReadingQuizNew
+            text={currentText}
+            readingStats={readingStats}
+            onComplete={handleQuizComplete}
+            onRetry={handleQuizRetry}
+          />
+        )
       )}
     </div>
   );
