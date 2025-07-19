@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { azureOpenAI } from '../../services/azureOpenAI';
 import { 
   Brain, 
   RefreshCw, 
@@ -70,7 +71,7 @@ const AIQuizGenerator: React.FC = () => {
   ];
 
   const generateAIQuiz = async () => {
-    console.log('🚀 Starting AI Quiz Generation...');
+    console.log('🚀 Starting AI Quiz Generation with Azure OpenAI Service...');
     setIsGenerating(true);
     setError(null);
     setQuestions([]);
@@ -79,12 +80,6 @@ const AIQuizGenerator: React.FC = () => {
     setShowResults(false);
     
     try {
-      const settings = JSON.parse(localStorage.getItem('kotobaid-api-settings') || '{}');
-      
-      if (!settings.azureOpenAI?.enabled || !settings.azureOpenAI.backendEndpoint || !settings.azureOpenAI.apiKey) {
-        throw new Error('Azure OpenAI tidak dikonfigurasi. Silakan konfigurasi di panel Dev.');
-      }
-
       const timestamp = Date.now();
       const uniqueId = Math.random().toString(36).substring(7);
       
@@ -107,49 +102,22 @@ Return ONLY this JSON structure:
 
 Generate 10 completely original questions now:`;
 
-      console.log('📝 Sending AI Quiz request...');
-      console.log('Endpoint:', settings.azureOpenAI.backendEndpoint);
-      console.log('API Key present:', !!settings.azureOpenAI.apiKey);
+      console.log('📝 Using Azure OpenAI Service...');
 
-      const response = await fetch(settings.azureOpenAI.backendEndpoint, {
-        method: 'POST',
-        headers: {
-          'api-key': settings.azureOpenAI.apiKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          messages: [
-            { 
-              role: 'system', 
-              content: 'You are a Japanese language quiz generator. Return only valid JSON format with exactly 10 questions. No additional text or explanations.'
-            },
-            { role: 'user', content: prompt }
-          ],
-          max_tokens: 4000,
-          temperature: 0.3,
-          top_p: 0.8,
-          frequency_penalty: 0.5,
-          presence_penalty: 0.3
-        })
+      // Use the azureOpenAI service
+      const response = await azureOpenAI.generateExplanation({
+        prompt: prompt,
+        type: 'conversation',
+        context: `Quiz generation for JLPT ${selectedLevel} about ${topicText}`
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Azure OpenAI Response Error:', errorText);
-        throw new Error(`Azure OpenAI Error: ${response.status} - ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      console.log('Full Azure OpenAI Response:', result);
-      
-      const content = result.choices[0]?.message?.content;
+      const content = response.text;
 
       if (!content) {
-        throw new Error('Tidak ada response dari AI');
+        throw new Error('Tidak ada response dari Azure OpenAI Service');
       }
 
       console.log('🔍 Parsing AI response...');
-      
       console.log('🔍 Raw AI response:', content);
       console.log('📏 Response length:', content.length);
       
@@ -181,7 +149,7 @@ Generate 10 completely original questions now:`;
         console.error('🔍 Content that failed to parse:', content);
         
         // No fallback - pure AI only
-        throw new Error(`AI response format tidak valid. Raw response: ${content.substring(0, 200)}...`);
+        throw new Error(`Azure OpenAI response format tidak valid. Raw response: ${content.substring(0, 200)}...`);
       }
 
       if (!aiQuiz || typeof aiQuiz !== 'object') {
@@ -206,14 +174,14 @@ Generate 10 completely original questions now:`;
       
       if (processedQuestions.length < 8) {
         console.warn(`⚠️ Only ${processedQuestions.length} valid questions, need at least 8`);
-        throw new Error(`AI hanya berhasil generate ${processedQuestions.length} soal valid dari 10 yang diminta. Minimal dibutuhkan 8 soal. Tidak ada mock data - silakan coba lagi dengan topik atau level yang berbeda.`);
+        throw new Error(`Azure OpenAI hanya berhasil generate ${processedQuestions.length} soal valid dari 10 yang diminta. Minimal dibutuhkan 8 soal. Tidak ada mock data - silakan coba lagi dengan topik atau level yang berbeda.`);
       }
       
       if (processedQuestions.length < 10) {
         console.warn(`⚠️ Got ${processedQuestions.length} questions instead of 10, but proceeding`);
       }
 
-      console.log('✅ AI Quiz generated successfully:', processedQuestions.length, 'questions');
+      console.log('✅ Azure OpenAI Quiz generated successfully:', processedQuestions.length, 'questions');
       setQuestions(processedQuestions);
       setQuizStartTime(Date.now());
 
@@ -227,20 +195,20 @@ Generate 10 completely original questions now:`;
       }
       
       // Check specific error types
-      let errorMessage = 'Error generating quiz';
+      let errorMessage = 'Error generating quiz dengan Azure OpenAI';
       if (error instanceof Error) {
-        if (error.message.includes('Azure OpenAI tidak dikonfigurasi')) {
+        if (error.message.includes('endpoint') && error.message.includes('belum diatur')) {
           errorMessage = 'Azure OpenAI belum dikonfigurasi. Silakan konfigurasi di panel Settings.';
-        } else if (error.message.includes('400')) {
-          errorMessage = 'Request tidak valid. Periksa konfigurasi API.';
-        } else if (error.message.includes('401')) {
+        } else if (error.message.includes('API Error: 400')) {
+          errorMessage = 'Request tidak valid. Periksa konfigurasi Azure OpenAI.';
+        } else if (error.message.includes('API Error: 401')) {
           errorMessage = 'API Key tidak valid. Periksa konfigurasi Azure OpenAI.';
-        } else if (error.message.includes('403')) {
+        } else if (error.message.includes('API Error: 403')) {
           errorMessage = 'Akses ditolak. Periksa permissions Azure OpenAI.';
-        } else if (error.message.includes('429')) {
+        } else if (error.message.includes('API Error: 429')) {
           errorMessage = 'Rate limit exceeded. Coba lagi dalam beberapa saat.';
-        } else if (error.message.includes('500')) {
-          errorMessage = 'Server error. Coba lagi nanti.';
+        } else if (error.message.includes('API Error: 500')) {
+          errorMessage = 'Azure OpenAI server error. Coba lagi nanti.';
         } else {
           errorMessage = error.message;
         }
@@ -415,50 +383,27 @@ Generate 10 completely original questions now:`;
     setError(null);
     
     try {
-      const settings = JSON.parse(localStorage.getItem('kotobaid-api-settings') || '{}');
-      
-      if (!settings.azureOpenAI?.enabled || !settings.azureOpenAI.backendEndpoint || !settings.azureOpenAI.apiKey) {
-        throw new Error('Azure OpenAI configuration is missing');
-      }
-
       const testPrompt = 'Say "Hello World" in JSON format: {"message": "Hello World"}';
       
-      const response = await fetch(settings.azureOpenAI.backendEndpoint, {
-        method: 'POST',
-        headers: {
-          'api-key': settings.azureOpenAI.apiKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          messages: [
-            { role: 'user', content: testPrompt }
-          ],
-          max_tokens: 100,
-          temperature: 0.1
-        })
+      console.log('🧪 Testing Azure OpenAI Service...');
+      
+      // Use the azureOpenAI service for testing
+      const response = await azureOpenAI.generateExplanation({
+        prompt: testPrompt,
+        type: 'conversation',
+        context: 'Connection test'
       });
 
-      console.log('Test response status:', response.status);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Test response error:', errorText);
-        throw new Error(`Connection test failed: ${response.status} - ${errorText}`);
-      }
-
-      const result = await response.json();
-      console.log('Test response:', result);
-      
-      const testContent = result.choices[0]?.message?.content;
+      const testContent = response.text;
       console.log('Test content:', testContent);
       
-      alert(`✅ Connection test successful!\n\nResponse: ${testContent}\nStatus: ${response.status}`);
+      alert(`✅ Azure OpenAI Service connection test successful!\n\nResponse: ${testContent}\nConfidence: ${response.confidence}`);
       
     } catch (error) {
-      console.error('❌ Connection test failed:', error);
+      console.error('❌ Azure OpenAI Service test failed:', error);
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      alert(`❌ Connection test failed!\n\nError: ${errorMsg}`);
-      setError(`Connection test failed: ${errorMsg}`);
+      alert(`❌ Azure OpenAI Service test failed!\n\nError: ${errorMsg}`);
+      setError(`Azure OpenAI Service test failed: ${errorMsg}`);
     } finally {
       setIsGenerating(false);
     }
@@ -484,8 +429,8 @@ Generate 10 completely original questions now:`;
               <Brain className="h-8 w-8 text-purple-600" />
               <Sparkles className="h-6 w-6 text-yellow-500" />
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Pure AI Quiz Generator</h2>
-            <p className="text-gray-600">100% AI-generated JLPT quiz - Tanpa mock data, hanya AI murni</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">Azure OpenAI Quiz Generator</h2>
+            <p className="text-gray-600">100% Azure OpenAI generated JLPT quiz - Tanpa mock data, pure AI</p>
           </div>
 
           {/* Level Selection */}
@@ -550,9 +495,9 @@ Generate 10 completely original questions now:`;
               className="flex items-center justify-center space-x-2 mx-auto px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105"
             >
               <Zap className="h-5 w-5" />
-              <span className="font-semibold">Generate AI Quiz (10 Soal)</span>
+              <span className="font-semibold">Generate Azure OpenAI Quiz (10 Soal)</span>
             </button>
-            <p className="text-sm text-gray-600">Quiz akan dibuat otomatis oleh AI dengan 10 soal yang unik</p>
+            <p className="text-sm text-gray-600">Quiz akan dibuat otomatis oleh Azure OpenAI dengan 10 soal yang unik</p>
             
             <button
               onClick={testConnection}
@@ -560,7 +505,7 @@ Generate 10 completely original questions now:`;
               className="flex items-center justify-center space-x-2 mx-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
             >
               <Target className="h-4 w-4" />
-              <span>Test Azure OpenAI Connection</span>
+              <span>Test Azure OpenAI Service</span>
             </button>
           </div>
 
@@ -592,17 +537,17 @@ Generate 10 completely original questions now:`;
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
             <h4 className="font-semibold text-blue-800 mb-2">
               <Settings className="h-4 w-4 inline mr-2" />
-              Fitur AI Quiz:
+              Fitur Azure OpenAI Quiz:
             </h4>
             <ul className="text-sm text-blue-700 space-y-1">
-              <li>• <strong>10 soal unik</strong> dibuat otomatis oleh AI untuk setiap quiz</li>
-              <li>• <strong>100% AI-generated</strong> - tidak ada mock data atau template</li>
+              <li>• <strong>10 soal unik</strong> dibuat otomatis oleh Azure OpenAI untuk setiap quiz</li>
+              <li>• <strong>100% Azure OpenAI generated</strong> - tidak ada mock data atau template</li>
               <li>• 5 kategori soal berbeda: Vocabulary, Grammar, Culture, Practical, Comprehension</li>
               <li>• Sistem anti-duplikasi advanced dengan validasi ketat</li>
               <li>• Soal disesuaikan dengan level JLPT yang dipilih</li>
               <li>• Topik dapat disesuaikan atau menggunakan topik kustom</li>
               <li>• Analisis performa dan tracking progress</li>
-              <li>• <strong>Pure AI only</strong> - Azure OpenAI wajib dikonfigurasi</li>
+              <li>• <strong>Azure OpenAI Service Integration</strong> - menggunakan service terpusat</li>
             </ul>
           </div>
 
