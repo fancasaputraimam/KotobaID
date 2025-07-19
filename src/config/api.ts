@@ -18,6 +18,9 @@ class APIConfigManager {
       retries: 3,
       retryDelay: 1000 // 1 second
     };
+    
+    // Listen for settings changes from dev panel
+    this.loadDevPanelSettings();
   }
 
   private getAPIBaseURL(): string {
@@ -42,6 +45,36 @@ class APIConfigManager {
 
   updateConfig(updates: Partial<APIConfig>): void {
     this.config = { ...this.config, ...updates };
+  }
+
+  // Load settings from dev panel (localStorage)
+  loadDevPanelSettings(): void {
+    try {
+      const savedSettings = localStorage.getItem('kotobaid-api-settings');
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        
+        // Update base URL if available from dev panel
+        if (settings.vertexAI?.backendEndpoint) {
+          this.updateConfig({ baseURL: settings.vertexAI.backendEndpoint });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading dev panel settings:', error);
+    }
+  }
+
+  // Get settings for specific service from dev panel
+  getDevPanelSettings() {
+    try {
+      const savedSettings = localStorage.getItem('kotobaid-api-settings');
+      if (savedSettings) {
+        return JSON.parse(savedSettings);
+      }
+    } catch (error) {
+      console.error('Error getting dev panel settings:', error);
+    }
+    return null;
   }
 
   // Get specific endpoint URLs

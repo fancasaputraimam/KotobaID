@@ -111,79 +111,10 @@ class AzureOpenAIService {
       };
     } catch (error) {
       console.error('Azure OpenAI Error:', error);
-      return this.getMockResponse(request);
+      throw error;
     }
   }
 
-  private getMockResponse(request: AzureOpenAIRequest): AzureOpenAIResponse {
-    let mockResponse = '';
-    
-    switch (request.type) {
-      case 'translation':
-        mockResponse = this.getMockTranslation(request.prompt);
-        break;
-      case 'kanji-explanation':
-        mockResponse = this.getMockKanjiExplanation(request.prompt);
-        break;
-      case 'grammar-explanation':
-        mockResponse = this.getMockGrammarExplanation(request.prompt);
-        break;
-      default:
-        mockResponse = 'Penjelasan AI tidak tersedia untuk tipe ini.';
-    }
-
-    return {
-      text: mockResponse,
-      confidence: 0.85
-    };
-  }
-
-  private getMockTranslation(prompt: string): string {
-    // Extract text to translate from prompt
-    const match = prompt.match(/translate.*?["'](.+?)["']/i);
-    const textToTranslate = match ? match[1] : 'teks';
-    
-    return `Terjemahan Indonesia: "${textToTranslate}" berarti [terjemahan dalam bahasa Indonesia]. 
-
-Catatan: Ini adalah respons simulasi. Untuk menggunakan Azure OpenAI yang sesungguhnya, Anda perlu mengimplementasikan backend API yang menggunakan kredensial Azure OpenAI Anda.`;
-  }
-
-  private getMockKanjiExplanation(prompt: string): string {
-    const kanjiMatch = prompt.match(/kanji ["'](.+?)["']/i);
-    const kanji = kanjiMatch ? kanjiMatch[1] : '漢字';
-    
-    return `Penjelasan Kanji "${kanji}":
-
-Kanji ini memiliki makna dan penggunaan yang kaya dalam bahasa Jepang. Secara historis, kanji ini berasal dari sistem tulisan Tiongkok dan telah diadaptasi ke dalam bahasa Jepang.
-
-Penggunaan dalam kehidupan sehari-hari:
-- Sering digunakan dalam konteks formal dan informal
-- Memiliki beberapa cara baca (onyomi dan kunyomi)
-- Dapat dikombinasikan dengan kanji lain untuk membentuk kata majemuk
-
-Catatan: Ini adalah respons simulasi. Untuk penjelasan Azure OpenAI yang sesungguhnya, implementasikan backend API dengan kredensial Azure OpenAI Anda.`;
-  }
-
-  private getMockGrammarExplanation(prompt: string): string {
-    const grammarMatch = prompt.match(/grammar pattern ["'](.+?)["']/i);
-    const grammar = grammarMatch ? grammarMatch[1] : 'tata bahasa';
-    
-    return `Penjelasan Tata Bahasa "${grammar}":
-
-Pola tata bahasa ini adalah salah satu struktur penting dalam bahasa Jepang yang perlu dipahami dengan baik.
-
-Cara penggunaan:
-1. Struktur dasar mengikuti pola tertentu
-2. Digunakan dalam situasi formal dan informal
-3. Memiliki nuansa makna yang spesifik
-
-Contoh penggunaan dalam kalimat:
-- Dalam konteks percakapan sehari-hari
-- Dalam tulisan formal
-- Dalam ekspresi perasaan atau pendapat
-
-Catatan: Ini adalah respons simulasi. Untuk penjelasan Azure OpenAI yang sesungguhnya, implementasikan backend API dengan kredensial Azure OpenAI Anda.`;
-  }
 
   async translateToIndonesian(text: string): Promise<string> {
     const request: AzureOpenAIRequest = {
@@ -219,10 +150,6 @@ Catatan: Ini adalah respons simulasi. Untuk penjelasan Azure OpenAI yang sesungg
     ) {
       result = '';
     }
-    // Tambahkan kata support Dana
-    if (result) {
-      result += '\n---\nSupport Dana 085813601701';
-    }
     return result;
   }
 
@@ -257,9 +184,6 @@ Catatan: Ini adalah respons simulasi. Untuk penjelasan Azure OpenAI yang sesungg
         result = '';
       }
     }
-    if (result) {
-      result += '\n---\nSupport Dana 085813601701';
-    }
     return result;
   }
 
@@ -292,9 +216,6 @@ Catatan: Ini adalah respons simulasi. Untuk penjelasan Azure OpenAI yang sesungg
       ) {
         result = '';
       }
-    }
-    if (result) {
-      result += '\n---\nSupport Dana 085813601701';
     }
     return result;
   }

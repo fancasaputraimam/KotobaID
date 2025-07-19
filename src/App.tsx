@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProgressProvider } from './contexts/ProgressContext';
-import { WritingProvider } from './contexts/WritingContext';
 import { AudioProvider } from './contexts/AudioContext';
 import UpdatedLandingPage from './components/layout/UpdatedLandingPage';
 import AuthPage from './components/AuthPage';
@@ -39,11 +38,9 @@ const AppContent: React.FC = () => {
   // Regular users see the learning interface
   return (
     <ProgressProvider>
-      <WritingProvider>
-        <AudioProvider>
-          <NewModernDashboard />
-        </AudioProvider>
-      </WritingProvider>
+      <AudioProvider>
+        <NewModernDashboard />
+      </AudioProvider>
     </ProgressProvider>
   );
 };

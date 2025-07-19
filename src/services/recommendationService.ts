@@ -91,7 +91,7 @@ export class RecommendationService {
       
     } catch (error) {
       console.error('Error generating personalized recommendations:', error);
-      return this.getFallbackRecommendations();
+      throw error;
     }
   }
 
@@ -138,7 +138,7 @@ export class RecommendationService {
       
     } catch (error) {
       console.error('Error generating study plan:', error);
-      return this.getFallbackStudyPlan(goals, timeCommitment, duration);
+      throw error;
     }
   }
 
@@ -382,30 +382,14 @@ export class RecommendationService {
     // In production, this would be more sophisticated
     const recommendations: PersonalizedRecommendation[] = [];
 
-    // Mock AI-generated recommendations based on response
-    if (aiResponse.includes('fokus') || aiResponse.includes('focus')) {
-      recommendations.push({
-        id: 'ai-focus-rec',
-        type: 'content',
-        priority: 'high',
-        title: 'Rekomendasi AI: Fokus pada Area Prioritas',
-        description: 'Berdasarkan analisis AI, Anda perlu fokus pada area tertentu untuk kemajuan optimal.',
-        reasoning: 'AI menganalisis pola belajar Anda dan mengidentifikasi area yang akan memberikan ROI tertinggi.',
-        actionItems: [
-          {
-            id: 'ai-practice',
-            action: 'Ikuti rencana latihan AI',
-            description: 'Latihan yang disesuaikan dengan gaya belajar Anda',
-            estimatedTime: '25 menit',
-            difficulty: 'medium'
-          }
-        ],
-        estimatedBenefit: 'Kemajuan 30% lebih cepat',
-        timeframe: '3 minggu',
-        category: 'AI Insight',
-        confidence: 92,
-        personalizedFor: `AI-optimized for ${profile.primary} learner`
-      });
+    // Parse actual AI response into structured recommendations
+    try {
+      const parsed = JSON.parse(aiResponse);
+      if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
+        return parsed.recommendations;
+      }
+    } catch (parseError) {
+      console.error('Failed to parse AI recommendations:', parseError);
     }
 
     return recommendations;
@@ -417,76 +401,16 @@ export class RecommendationService {
     timeCommitment: string,
     duration: string
   ): StudyPlan {
-    // Simplified study plan generation
-    // In production, this would parse actual AI JSON response
+    try {
+      const parsed = JSON.parse(aiResponse);
+      if (parsed.studyPlan) {
+        return parsed.studyPlan;
+      }
+    } catch (parseError) {
+      console.error('Failed to parse AI study plan:', parseError);
+    }
     
-    return {
-      id: 'ai-study-plan',
-      title: `Rencana Belajar Personal - ${duration}`,
-      description: `Rencana belajar yang disesuaikan untuk mencapai tujuan: ${goals.join(', ')}`,
-      duration,
-      dailyCommitment: timeCommitment,
-      phases: [
-        {
-          id: 'foundation',
-          title: 'Fase Fondasi (Minggu 1-2)',
-          description: 'Membangun dasar yang kuat',
-          duration: '2 minggu',
-          dailyActivities: [
-            {
-              type: 'review',
-              title: 'Review Hiragana/Katakana',
-              description: 'Pastikan penguasaan sistem tulisan dasar',
-              estimatedTime: '10 menit',
-              skills: ['writing', 'reading'],
-              resources: ['flashcards', 'writing practice']
-            },
-            {
-              type: 'vocabulary',
-              title: 'Kosakata Dasar',
-              description: 'Pelajari 5 kata baru setiap hari',
-              estimatedTime: '15 menit',
-              skills: ['vocabulary'],
-              resources: ['SRS flashcards', 'example sentences']
-            }
-          ],
-          milestones: ['Akurasi hiragana/katakana 95%', '50 kata baru dikuasai'],
-          assessments: ['Tes tulisan', 'Kuis kosakata']
-        },
-        {
-          id: 'building',
-          title: 'Fase Pengembangan (Minggu 3-4)',
-          description: 'Mengembangkan kemampuan secara bertahap',
-          duration: '2 minggu',
-          dailyActivities: [
-            {
-              type: 'grammar',
-              title: 'Pola Kalimat Dasar',
-              description: 'Pelajari struktur kalimat fundamental',
-              estimatedTime: '15 menit',
-              skills: ['grammar'],
-              resources: ['grammar guides', 'example sentences']
-            },
-            {
-              type: 'listening',
-              title: 'Latihan Mendengar',
-              description: 'Dengarkan dialog sederhana',
-              estimatedTime: '10 menit',
-              skills: ['listening'],
-              resources: ['audio materials', 'pronunciation guide']
-            }
-          ],
-          milestones: ['Pemahaman 10 pola grammar', 'Listening accuracy 70%'],
-          assessments: ['Grammar quiz', 'Listening test']
-        }
-      ],
-      targetSkills: goals,
-      adaptations: [
-        'Sesuaikan kecepatan berdasarkan progress',
-        'Tambah waktu untuk area yang sulit',
-        'Variasikan metode jika perlu'
-      ]
-    };
+    throw new Error('Failed to generate study plan from AI response');
   }
 
   private static getSkillResources(skill: string): string[] {
@@ -522,78 +446,4 @@ export class RecommendationService {
     });
   }
 
-  private static getFallbackRecommendations(): PersonalizedRecommendation[] {
-    return [
-      {
-        id: 'fallback-consistency',
-        type: 'schedule',
-        priority: 'high',
-        title: 'Bangun Kebiasaan Belajar Rutin',
-        description: 'Konsistensi adalah kunci sukses dalam belajar bahasa Jepang.',
-        reasoning: 'Kebiasaan belajar yang konsisten lebih efektif daripada sesi panjang yang sporadis.',
-        actionItems: [
-          {
-            id: 'daily-practice',
-            action: 'Belajar 20 menit setiap hari',
-            description: 'Tetapkan waktu yang sama setiap hari untuk belajar',
-            estimatedTime: '20 menit',
-            difficulty: 'easy'
-          }
-        ],
-        estimatedBenefit: 'Peningkatan retensi dan kemajuan yang stabil',
-        timeframe: '2 minggu',
-        category: 'Foundation',
-        confidence: 80,
-        personalizedFor: 'General learner'
-      }
-    ];
-  }
-
-  private static getFallbackStudyPlan(goals: string[], timeCommitment: string, duration: string): StudyPlan {
-    return {
-      id: 'fallback-plan',
-      title: `Rencana Belajar Umum - ${duration}`,
-      description: 'Rencana belajar yang disesuaikan untuk pemula hingga menengah',
-      duration,
-      dailyCommitment: timeCommitment,
-      phases: [
-        {
-          id: 'basic',
-          title: 'Fase Dasar',
-          description: 'Membangun fondasi bahasa Jepang',
-          duration: '50% dari waktu total',
-          dailyActivities: [
-            {
-              type: 'writing',
-              title: 'Latihan Menulis',
-              description: 'Hiragana, Katakana, dan Kanji dasar',
-              estimatedTime: '40% dari waktu harian',
-              skills: ['writing'],
-              resources: ['Stroke order guide', 'Practice sheets']
-            },
-            {
-              type: 'vocabulary',
-              title: 'Kosakata',
-              description: 'Kata-kata dasar sehari-hari',
-              estimatedTime: '30% dari waktu harian',
-              skills: ['vocabulary'],
-              resources: ['Flashcards', 'Example sentences']
-            },
-            {
-              type: 'grammar',
-              title: 'Tata Bahasa',
-              description: 'Struktur kalimat dasar',
-              estimatedTime: '30% dari waktu harian',
-              skills: ['grammar'],
-              resources: ['Grammar guide', 'Pattern practice']
-            }
-          ],
-          milestones: ['Menguasai hiragana/katakana', '100 kosakata dasar', '10 pola grammar'],
-          assessments: ['Quiz mingguan', 'Writing test']
-        }
-      ],
-      targetSkills: goals,
-      adaptations: ['Sesuaikan dengan kemajuan individual']
-    };
-  }
 }

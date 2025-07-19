@@ -509,7 +509,7 @@ const APISettings: React.FC = () => {
               <Brain className="h-6 w-6 text-blue-600" />
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">Azure OpenAI</h3>
-                <p className="text-sm text-gray-600">Konfigurasi endpoint backend Azure OpenAI</p>
+                <p className="text-sm text-gray-600">Konfigurasi endpoint backend Azure OpenAI untuk dev panel</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -526,48 +526,128 @@ const APISettings: React.FC = () => {
               </button>
             </div>
           </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Endpoint Backend Azure OpenAI</label>
-            <input
-              type="text"
-              className="w-full border rounded-lg px-3 py-2 text-gray-900"
-              value={settings.azureOpenAI.backendEndpoint}
-              onChange={e => setSettings(prev => ({ ...prev, azureOpenAI: { ...prev.azureOpenAI, backendEndpoint: e.target.value } }))}
-              placeholder="http://localhost:3001/api/azureopenai"
-            />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Endpoint Azure OpenAI
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={settings.azureOpenAI.backendEndpoint}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    azureOpenAI: { ...prev.azureOpenAI, backendEndpoint: e.target.value }
+                  }))}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://your-resource.openai.azure.com/openai/deployments/..."
+                />
+                <button
+                  onClick={() => copyToClipboard(settings.azureOpenAI.backendEndpoint)}
+                  className="absolute right-2 top-2 p-1 text-gray-400 hover:text-gray-600"
+                >
+                  <Copy className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="text-xs text-gray-600 mt-1">
+                <p><strong>Format:</strong> https://[resource].openai.azure.com/openai/deployments/[model]/chat/completions?api-version=[version]</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                API Key Azure OpenAI
+              </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  value={settings.azureOpenAI.apiKey}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    azureOpenAI: { ...prev.azureOpenAI, apiKey: e.target.value }
+                  }))}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Masukkan API Key Azure OpenAI"
+                />
+                <button
+                  onClick={() => {
+                    const input = document.querySelector('input[type="password"]') as HTMLInputElement;
+                    if (input.type === 'password') {
+                      input.type = 'text';
+                    } else {
+                      input.type = 'password';
+                    }
+                  }}
+                  className="absolute right-2 top-2 p-1 text-gray-400 hover:text-gray-600"
+                >
+                  <Eye className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Model Azure OpenAI
+              </label>
+              <select
+                value={settings.azureOpenAI.model}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  azureOpenAI: { ...prev.azureOpenAI, model: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="gpt-35-turbo">GPT-3.5 Turbo</option>
+                <option value="gpt-4">GPT-4</option>
+                <option value="gpt-4-32k">GPT-4 32K</option>
+                <option value="gpt-4o">GPT-4o</option>
+                <option value="gpt-4o-mini">GPT-4o Mini</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Connection Status
+              </label>
+              <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg">
+                <div className={`w-3 h-3 rounded-full ${
+                  testResults.azureOpenAI === 'success' ? 'bg-green-500' :
+                  testResults.azureOpenAI === 'error' ? 'bg-red-500' :
+                  testResults.azureOpenAI === 'testing' ? 'bg-yellow-500' :
+                  'bg-gray-400'
+                }`}></div>
+                <span className="text-sm text-gray-700">
+                  {getStatusText(testResults.azureOpenAI)}
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">API Key Azure OpenAI</label>
-            <input
-              type="password"
-              className="w-full border rounded-lg px-3 py-2 text-gray-900"
-              value={settings.azureOpenAI.apiKey}
-              onChange={e => setSettings(prev => ({ ...prev, azureOpenAI: { ...prev.azureOpenAI, apiKey: e.target.value } }))}
-              placeholder="Masukkan API Key Azure OpenAI"
-            />
+
+          <div className="mt-4 flex items-center">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={settings.azureOpenAI.enabled}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  azureOpenAI: { ...prev.azureOpenAI, enabled: e.target.checked }
+                }))}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <span className="ml-2 text-sm text-gray-700">Aktifkan Azure OpenAI</span>
+            </label>
           </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Model Azure OpenAI</label>
-            <select
-              className="w-full border rounded-lg px-3 py-2 text-gray-900"
-              value={settings.azureOpenAI.model}
-              onChange={e => setSettings(prev => ({ ...prev, azureOpenAI: { ...prev.azureOpenAI, model: e.target.value } }))}
-            >
-              <option value="gpt-35-turbo">gpt-35-turbo</option>
-              <option value="gpt-4">gpt-4</option>
-              <option value="gpt-4-32k">gpt-4-32k</option>
-              <option value="gpt-4o">gpt-4o</option>
-            </select>
-          </div>
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              checked={settings.azureOpenAI.enabled}
-              onChange={e => setSettings(prev => ({ ...prev, azureOpenAI: { ...prev.azureOpenAI, enabled: e.target.checked } }))}
-              className="mr-2"
-              id="azureOpenAI-enabled"
-            />
-            <label htmlFor="azureOpenAI-enabled" className="text-sm text-gray-700">Aktifkan Azure OpenAI</label>
+
+          {/* Dev Panel Configuration Tips */}
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 className="font-medium text-blue-800 mb-2">Tips Konfigurasi Dev Panel:</h4>
+            <div className="text-sm text-blue-700 space-y-1">
+              <p>• Endpoint harus dalam format lengkap termasuk deployment dan API version</p>
+              <p>• API Key dapat ditemukan di Azure Portal → Cognitive Services → Keys and Endpoint</p>
+              <p>• Model harus sesuai dengan deployment di Azure OpenAI Service</p>
+              <p>• Gunakan Test button untuk memverifikasi konfigurasi</p>
+            </div>
           </div>
         </div>
 

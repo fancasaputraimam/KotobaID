@@ -267,8 +267,8 @@ export class AnalyticsService {
     const timeSpent = [...skillProgress, ...specific]
       .reduce((sum, item) => sum + (item.totalPractices || item.totalListened || item.totalReviews || 0) * 2, 0);
 
-    // Calculate recent progress (simplified)
-    const recentProgress = Math.random() * 20 - 10; // -10% to +10% for demo
+    // Calculate recent progress based on historical data
+    const recentProgress = this.calculateRecentProgress(skillProgress, specific);
 
     return {
       totalPracticed,
@@ -297,7 +297,7 @@ export class AnalyticsService {
       mastered,
       averageAccuracy: Math.round(averageAccuracy),
       timeSpent: Math.round(timeSpent),
-      recentProgress: Math.round(Math.random() * 20 - 10),
+      recentProgress: this.calculateRecentProgress([], flashcardData),
       strongestAreas: ['基本語彙', '動詞活用'],
       weakestAreas: ['敬語', '漢字読み'],
       nextMilestone: this.calculateNextMilestone(totalPracticed, mastered)
@@ -415,9 +415,9 @@ export class AnalyticsService {
     const accuracyTrend = this.calculateAccuracyTrend(flashcardData, writingData, audioData);
     const speedImprovement = this.calculateSpeedImprovement(writingData, audioData);
     
-    const consistencyScore = Math.round(Math.random() * 30 + 70); // 70-100
-    const learningVelocity = Math.round(Math.random() * 5 + 3); // 3-8 items per day
-    const retentionRate = Math.round(Math.random() * 20 + 75); // 75-95%
+    const consistencyScore = this.calculateConsistencyScore(flashcardData, writingData, audioData);
+    const learningVelocity = this.calculateLearningVelocity(flashcardData, writingData, audioData);
+    const retentionRate = this.calculateRetentionRate(flashcardData, writingData, audioData);
 
     const errorPatterns = this.identifyErrorPatterns(flashcardData, writingData, audioData);
     const improvementAreas = this.identifyImprovementAreas(flashcardData, writingData, audioData);
@@ -772,5 +772,76 @@ export class AnalyticsService {
           : 1
       )
     }));
+  }
+
+  private static calculateRecentProgress(skillProgress: any[], specificData: any[]): number {
+    const allData = [...skillProgress, ...specificData];
+    if (allData.length === 0) return 0;
+    
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    const recentItems = allData.filter(item => {
+      const itemDate = item.lastPracticed || item.lastReviewed || item.createdAt;
+      return itemDate && new Date(itemDate.toDate ? itemDate.toDate() : itemDate) >= weekAgo;
+    });
+    
+    const recentAccuracy = recentItems.reduce((sum, item) => sum + (item.averageAccuracy || 0), 0) / Math.max(1, recentItems.length);
+    const overallAccuracy = allData.reduce((sum, item) => sum + (item.averageAccuracy || 0), 0) / allData.length;
+    
+    return Math.round(recentAccuracy - overallAccuracy);
+  }
+
+  private static calculateConsistencyScore(flashcardData: any[], writingData: any[], audioData: any[]): number {
+    const allData = [...flashcardData, ...writingData, ...audioData];
+    if (allData.length === 0) return 0;
+    
+    const now = new Date();
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    
+    const dailyActivity = new Map<string, number>();
+    allData.forEach(item => {
+      const itemDate = item.lastPracticed || item.lastReviewed || item.createdAt;
+      if (itemDate) {
+        const date = new Date(itemDate.toDate ? itemDate.toDate() : itemDate);
+        if (date >= monthAgo) {
+          const dateKey = date.toDateString();
+          dailyActivity.set(dateKey, (dailyActivity.get(dateKey) || 0) + 1);
+        }
+      }
+    });
+    
+    const activeDays = dailyActivity.size;
+    const possibleDays = Math.min(30, Math.floor((now.getTime() - monthAgo.getTime()) / (24 * 60 * 60 * 1000)));
+    
+    return Math.round((activeDays / Math.max(1, possibleDays)) * 100);
+  }
+
+  private static calculateLearningVelocity(flashcardData: any[], writingData: any[], audioData: any[]): number {
+    const allData = [...flashcardData, ...writingData, ...audioData];
+    if (allData.length === 0) return 0;
+    
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    const recentItems = allData.filter(item => {
+      const itemDate = item.createdAt || item.firstSeen;
+      return itemDate && new Date(itemDate.toDate ? itemDate.toDate() : itemDate) >= weekAgo;
+    });
+    
+    return Math.round(recentItems.length / 7);
+  }
+
+  private static calculateRetentionRate(flashcardData: any[], writingData: any[], audioData: any[]): number {
+    const allData = [...flashcardData, ...writingData, ...audioData];
+    if (allData.length === 0) return 0;
+    
+    const masteredItems = allData.filter(item => 
+      item.masteryLevel === 'mastered' || 
+      item.averageAccuracy >= 85 ||
+      (item.easeFactor && item.easeFactor >= 2.5)
+    );
+    
+    return Math.round((masteredItems.length / allData.length) * 100);
   }
 }

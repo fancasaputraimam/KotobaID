@@ -54,7 +54,6 @@ import QuizAIPage from '../learning/QuizAIPage';
 import ExampleAIPage from '../learning/ExampleAIPage';
 import JLPTAIPage from '../learning/JLPTAIPage';
 import KanjiSearchPage from '../learning/KanjiSearchPage';
-import WritingPractice from '../writing/WritingPractice';
 import ListeningPractice from '../audio/ListeningPractice';
 import ReadingComprehension from '../reading/ReadingComprehension';
 import StudyTools from '../studyTools/StudyTools';
@@ -88,7 +87,6 @@ const NewModernDashboard: React.FC = () => {
       label: 'Learning',
       items: [
         { id: 'study-tools', label: 'Study Tools', icon: Search, color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
-        { id: 'writing', label: 'Writing', icon: Edit3, color: 'text-orange-600', bgColor: 'bg-orange-50' },
         { id: 'audio', label: 'Audio', icon: Volume2, color: 'text-red-600', bgColor: 'bg-red-50' },
         { id: 'reading', label: 'Reading', icon: FileText, color: 'text-teal-600', bgColor: 'bg-teal-50' },
       ]
@@ -197,8 +195,6 @@ const NewModernDashboard: React.FC = () => {
         return <DashboardHome userProgress={userProgress} onTabChange={setActiveTab} />;
       case 'study-tools':
         return <StudyTools />;
-      case 'writing':
-        return <WritingPractice />;
       case 'audio':
         return <ListeningPractice />;
       case 'reading':
@@ -513,13 +509,6 @@ const DashboardHome: React.FC<{ userProgress: UserProgress | null; onTabChange: 
       color: 'from-pink-500 to-rose-500',
       description: 'Review & Practice',
       tab: 'flashcard-study'
-    },
-    { 
-      label: 'Writing', 
-      icon: Edit3, 
-      color: 'from-orange-500 to-red-500',
-      description: 'Kanji & Kana',
-      tab: 'writing'
     },
     { 
       label: 'Audio', 
