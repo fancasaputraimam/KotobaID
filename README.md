@@ -1,24 +1,27 @@
-# KotobaID — AI Japanese Learning Platform
+# KotobaID — AI Japanese Learning Platform 🇯🇵
 
-KotobaID is an AI-powered web platform designed to help beginners learn Japanese from zero level.
+KotobaID is an open-source AI-powered web platform designed to help beginners learn Japanese from zero level in an interactive and personalized way.
 
-## Features
-- AI grammar explanations
+## ✨ Motivation
+Many beginners struggle to learn Japanese due to complex grammar and lack of interactive practice. KotobaID aims to solve this by integrating AI as a personal learning assistant.
+
+## 🚀 Features
+- AI-powered grammar explanations
 - Vocabulary learning system
-- Interactive conversation practice
-- AI-generated exercises
-- Beginner-friendly learning path
+- Interactive conversation practice with AI
+- AI-generated quizzes and exercises
+- Beginner learning path (Hiragana → Katakana → Basic Grammar)
+- Personalized learning feedback
 
-## Goal
-This project aims to make Japanese learning accessible using AI technology and open-source collaboration.
+## 🧠 AI Integration
+AI is used to:
+- Explain grammar naturally
+- Generate exercises dynamically
+- Simulate conversations
+- Provide learning feedback
 
-## Tech Stack
+## 🛠 Tech Stack
 - TypeScript / JavaScript
-- AI Integration
-- Web Platform
-
-## Status
-🚧 Currently under development.
-
-## Contribution
-Contributions are welcome!
+- Node.js
+- AI API Integration
+- Web-based platform
